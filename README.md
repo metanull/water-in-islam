@@ -20,7 +20,7 @@ grants this repository Read under *Manage Actions access*, so the workflow's
 built-in `github.token` can install it — no secret, no PAT. Locally, each
 developer authenticates for themselves, with
 `npm login --registry=https://npm.pkg.github.com` or a personal `~/.npmrc`; the
-Docker preview reads the token from `.env`.
+Docker preview mounts that `~/.npmrc` read-only.
 
 ---
 
@@ -62,8 +62,10 @@ The preview runs in Docker; nothing needs to be installed on the host.
 docker compose up
 ```
 
-Copy `.env.example` to `.env` first and paste a GitHub Packages read token
-after `NODE_AUTH_TOKEN=`. Then open <http://localhost:5173>.
+Log in to GitHub Packages once on your own machine — `npm login
+--registry=https://npm.pkg.github.com --scope=@metanull` — and the preview reads
+that login. Nothing in this repository holds a token. Then open
+<http://localhost:5173>.
 
 `npm run build`, `npm run test` and `npm run lint` are the three checks CI runs
 (build and test are blocking).
