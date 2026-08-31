@@ -7,6 +7,9 @@ const globals = {
   console: 'readonly',
   process: 'readonly',
   URL: 'readonly',
+  // Carousels and slideshows rotate on a timer.
+  setInterval: 'readonly',
+  clearInterval: 'readonly',
 }
 
 export default [

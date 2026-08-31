@@ -1,38 +1,118 @@
-import { useDataPackage } from '@metanull/viewer-core'
-import { PageShell } from '@metanull/viewer-layout'
+import { exhibitionTitle, siteLanguages } from './composables/useExhibitionData.js'
+import SiteShell from './SiteShell.vue'
 
-const { entityNames } = useDataPackage()
+// The languages this build may offer are `exhibition.languages_enabled` — what
+// `exhibition_i18n.enabled` actually publishes — not the manifest's list of
+// every language some record happens to carry. Per the epic's decision Q2 an
+// exhibition ships one build per enabled language; this one enables English
+// alone, so the shell shows no language switcher.
+//
+// English first regardless of the package's order, because viewer-core boots
+// vue-i18n at `languages[0]`.
+const languages = [
+  ...(siteLanguages.includes('en') ? ['en'] : []),
+  ...siteLanguages.filter((code) => code !== 'en'),
+]
 
 export default {
   // The dataset package this website renders. Must match the alias in
   // vite.config.js and the dependency in package.json.
-  datasetPackage: '@metanull/__DATASET__-data',
+  datasetPackage: '@metanull/water-in-islam-data',
 
-  // Shown as the home page heading.
-  siteName: '__DATASET__',
+  siteName: exhibitionTitle(languages[0]),
 
+  // All pages are website-specific views (below) — no generic entity pages.
   features: {
-    // Entities that get a list page (/#/<entity>) and detail pages
-    // (/#/<entity>/<id>). Defaults to every entity of the data package;
-    // replace with an explicit list to publish only some of them:
-    // entities: ['item', 'exhibition'],
-    entities: entityNames,
+    entities: [],
   },
 
-  // The page structure rendered around the active view. Remove these two
-  // keys for a bare, shell-less site.
-  shell: PageShell,
-  navigation: {
-    // Props for PageShell — see @metanull/viewer-layout for the full list
-    // (headerSubtitle, bannerImage, hyperlinks, sponsors, …).
-    headerTitle: '__DATASET__',
-    navLinks: [
-      { label: 'Home', href: '#/' },
-      ...entityNames.map((entity) => ({ label: entity, href: `#/${entity}` })),
-    ],
-    footerText: '',
-  },
+  languages,
 
-  // Website-specific extra pages (components under src/views/):
-  // extraViews: [{ path: '/about', name: 'about', component: AboutView }],
+  // The shell supplies its header, banner, navigation, bottom banner, logo
+  // strip and footer through PageShell's slots, so there is no `navigation`
+  // prop bag to pass.
+  shell: SiteShell,
+
+  // The legacy route map, one view per page. Paths mirror the legacy client's
+  // routes one for one, including the item sheet's dbUid path
+  // (`/database-item/mwnf3/objects/EPM/uk/Mus21/41/en`), so a legacy URL can be
+  // pasted after the `#` and land on the same page.
+  //
+  // `/theme/:id` carries `display_order - 1`, exactly as legacy did — the About
+  // theme is display order 1, so the first listed theme is `/theme/1`.
+  // `:subtheme` is either the literal `overview` or a 1-based index into the
+  // theme's sub-themes; `:image` is a 1-based index into the theme's picture
+  // selections.
+  //
+  // Two deliberate differences from legacy, both because the inventory model
+  // has no counterpart for a segment legacy resolved server-side:
+  //
+  //   * the partner and institution routes drop the project-id segment
+  //     (`/partner/dz/Mus01/en`, not `/partner/ISL/dz/Mus01/en`), since
+  //     partners.project_id is null for every imported museum;
+  //   * `/institution/:country/:id/:language` takes the same shape as
+  //     `/partner` rather than legacy's catch-all `pathMatch`, because a
+  //     package routes by partner `type` instead of by which endpoint answered.
+  //
+  // The 'home' name replaces viewer-core's generic home route.
+  extraViews: [
+    { path: '/', name: 'home', component: () => import('./views/Home.vue') },
+    { path: '/about', name: 'about', component: () => import('./views/About.vue') },
+    { path: '/themes', name: 'themes', component: () => import('./views/Themes.vue') },
+    { path: '/theme/:id/:subtheme?/:image?', name: 'theme', component: () => import('./views/Theme.vue') },
+    {
+      path: '/theme-gallery/:id/:subtheme?',
+      name: 'theme-gallery',
+      component: () => import('./views/ThemeGallery.vue'),
+    },
+    { path: '/collection', name: 'collection', component: () => import('./views/CollectionSearch.vue') },
+    {
+      path: '/collection-results',
+      name: 'collection-results',
+      component: () => import('./views/CollectionResults.vue'),
+    },
+    {
+      path: '/database-item/:uid(.*)/:language',
+      name: 'database-item',
+      component: () => import('./views/ItemSheet.vue'),
+    },
+    { path: '/search', name: 'search-results', component: () => import('./views/SearchResults.vue') },
+    { path: '/how-to-search', name: 'search-how-to', component: () => import('./views/SearchHowTo.vue') },
+    { path: '/partners', name: 'partners', component: () => import('./views/Partners.vue') },
+    {
+      path: '/partner/:country/:id/:language',
+      name: 'partner',
+      component: () => import('./views/PartnerProfile.vue'),
+    },
+    {
+      path: '/partner-objects/:country/:id/:page',
+      name: 'partner-objects',
+      component: () => import('./views/PartnerObjects.vue'),
+    },
+    {
+      path: '/institution/:country/:id/:language',
+      name: 'institution',
+      component: () => import('./views/InstitutionProfile.vue'),
+    },
+    {
+      path: '/institution-monuments/:country/:id/:page',
+      name: 'institution-monuments',
+      component: () => import('./views/InstitutionMonuments.vue'),
+    },
+    { path: '/related', name: 'related', component: () => import('./views/RelatedContent.vue') },
+    { path: '/timeline', name: 'timeline', component: () => import('./views/Timeline.vue') },
+    {
+      path: '/timeline-results',
+      name: 'timeline-results',
+      component: () => import('./views/TimelineResults.vue'),
+    },
+    {
+      path: '/timeline-gallery/:country/:start/:end/:page',
+      name: 'timeline-gallery',
+      component: () => import('./views/TimelineGallery.vue'),
+    },
+    { path: '/credits', name: 'credits', component: () => import('./views/Credits.vue') },
+    { path: '/error', name: 'error', component: () => import('./views/ErrorPage.vue') },
+    { path: '/:pathMatch(.*)*', redirect: '/error' },
+  ],
 }
