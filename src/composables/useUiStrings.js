@@ -3,8 +3,10 @@ import { md, mdInline } from './useExhibitionData.js'
 
 // UI strings come from the site-i18n catalogues vendored into src/i18n — never
 // from the data package (decision G3). Each file is the shared MWNF Galleries
-// layer (group 59) with the Carpets site's own keys overlaid; regenerate them
-// with `npm run sync-i18n`.
+// layer (group 59) with this site's own keys overlaid. They are generated in
+// the inventory-app monorepo (`scripts/viewers/<site>`, `npm run sync-i18n`) and
+// vendored here — there is no such script in a website repo. Do not hand-edit
+// them; the website's own translatable texts live in `locales/`.
 //
 // Only the messages legacy actually has in a language are present: the files
 // are deliberately not padded with English, so "missing" and "English on

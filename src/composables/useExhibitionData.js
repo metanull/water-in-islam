@@ -42,21 +42,18 @@ export const relatedContent = ref(relatedContentData)
 // ships every member with its `languages` array intact and leaves the decision
 // here, because the decision belongs to the build rather than to the export.
 //
-// `languages` is what the record has TRANSLATIONS in, so a non-empty array
+// An item's `languages` is what it has TRANSLATIONS in, so a non-empty array
 // without this build's language means the text exists in some other language
-// and not in this one. One member is in that state — `mwnf3:objects:GalEx6:es:
-// Mus81:4`, "Brocal de pozo", Spanish only — and legacy agrees: its `/es`
-// instance serves the record and its `/en` instance 404s. It appears in no
-// theme and nothing links to it, so dropping it is local.
+// and not in this one — legacy's own instance 404s such a record, and this
+// build drops it to match.
 //
-// An EMPTY array is NOT the same case and must not be swept in with it. Six
-// members carry one, and legacy serves all six in English — its own `/items`
-// answers 492 records that are a strict subset of the package's 495, and the
-// only three it withholds are this Spanish record and two Sharing History ones.
-// The empty array means the package has no text for them in ANY language, which
-// is a gap in the package rather than a fact about the record; they keep their
-// legacy names through `itemLabel`'s `internal_name` fallback and lose their
-// descriptions. See README, "Known differences".
+// An EMPTY array is a different case and must not be swept in with it: it
+// means the package has no text in ANY language, which is a gap in the export
+// rather than a fact about the record, and legacy serves those records
+// regardless. They keep their legacy names through `itemLabel`'s
+// `internal_name` fallback and lose only their descriptions. Hence the
+// `!i.languages?.length ||` guard, which reads like a redundant null-check and
+// is not.
 const renderable = itemsData.filter(
   i => !i.languages?.length || i.languages.includes(defaultLang)
 )
@@ -186,11 +183,9 @@ export function partnerFromKey(countryCode, legacyId) {
 // E6: a hidden museum is exported but must not appear on any list or profile
 // page. Its items still render — legacy hides the museum, not the object.
 //
-// Colours has none of these and this exhibition has eleven, six of which hold
-// 51 members between them (`us/Mus82`, the Metropolitan, holds 26), so this is
-// the fork where the rule is actually exercised. The polarity is what matters:
-// dropping the partner records instead of flagging them would leave those 51
-// items pointing at nothing.
+// The polarity is what matters: a hidden museum is FLAGGED, never dropped from
+// `partners.json`. Its items still name it as their holder, so removing the
+// record would leave them pointing at nothing.
 //
 // Three surfaces enforce it, and they are all the surfaces there are:
 //   * `visiblePartners` — the /partners list.
@@ -379,10 +374,10 @@ export function pictureText(theme, picture, lang = defaultLang) {
 // key → family assignment were confirmed by loading one member of each family
 // and reading `#info-project-name` and the citation block's class.
 //
-// This exhibition draws from seven of them, which is what makes it worth
-// centralising: the Colours fork carried this table twice, in ObjectGrid and
-// ItemSheet, and had DGA on `#006950` — the Explore green — where legacy uses
-// `#0059bf`. Colours has no DGA member, so nothing showed it.
+// The tables live here rather than in the two components that render them.
+// Duplicating them is how the monorepo viewer acquired a wrong DGA swatch —
+// the Explore green instead of `#0059bf` — in one copy and not the other,
+// where it stayed invisible because no member happened to use it.
 const PROJECT_NAMES = {
   ISL: 'Discover Islamic Art',
   EPM: 'Explore Islamic Art Collections',
@@ -417,12 +412,12 @@ const PROJECT_FAMILIES = {
 // EXH purple, the same swatch it gives The Table Is Set.
 const NATIVE_PROJECT_KEY = exhibition.mwnf3_project_id
 
-// One member has no `project_key` at all: `mwnf3_explore:monument:1813`, from
-// the Explore monuments database rather than from a project. Legacy still
-// colours it — `#info-citation-link` carries its `Explore` class — and still
+// Some members have no `project_key` at all: they come from the Explore
+// monuments database rather than from a project, which is why provenance has
+// to be read from the keyspace here instead of from the field. Legacy still
+// colours them — `#info-citation-link` carries an `Explore` class — and still
 // prints an empty project name, so its citation reads `"…" in , Museum With No
-// Frontiers, 2026.` with a hole in it. The colour is reproduced from the
-// keyspace, which is the only place the provenance survives; the empty name is
+// Frontiers, …` with a hole in it. The colour is reproduced; the empty name is
 // not, because a label reading "for" with nothing after it is a rendering
 // fault rather than a faithful copy. The line is dropped instead.
 function isExploreRecord(item) {

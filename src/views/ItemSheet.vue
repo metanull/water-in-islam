@@ -116,10 +116,13 @@ watch([description, shortDescription, showShort], () => nextTick(bindGlossaryLin
 //
 // Order and labels are the legacy sheet's, field for field
 // (DatabaseItem.vue's `objectData`). Empty values are dropped, as legacy's
-// `filterData` did. Two legacy fields have no counterpart in the inventory
-// model at all — `scriber` and `binding` — and three notice fields
-// (`notice`, `notice_b`, `notice_c`) were never imported; all are simply
-// absent rather than faked.
+// `filterData` did.
+//
+// Three legacy rows are missing here and should not be: `scriber`, `binding`
+// and the copyright block. The first two ARE carried by the package — the
+// importer writes them to `item_translations.extra` and the exporter reads
+// them back — so their absence is this field list's omission rather than a
+// gap in the model. Tracked for every site in metanull/inventory-app#1630.
 const L = (key) => tIn(lang.value, key)
 
 const fields = computed(() => {
@@ -179,9 +182,9 @@ const citation = computed(() => {
 
 const projectName = computed(() => projectNameOf(item.value))
 
-// The four projects legacy offers a "search the related database" link for.
-// DCA — the native project of 398 of carpets' 486 members — is deliberately not
-// among them: legacy has no public DCA database search to point at.
+// The projects legacy offers a "search the related database" link for. DCA is
+// deliberately not among them: legacy has no public DCA database search to
+// point at, so a DCA-sourced member gets no such link at all.
 const RELATED_DATABASE_PROJECTS = new Set(['ISL', 'EPM', 'DBA', 'BAR', 'AWE', 'awe'])
 const hasRelatedDatabase = computed(() =>
   RELATED_DATABASE_PROJECTS.has(item.value?.project_key)
@@ -566,15 +569,12 @@ function printSheet() {
         </div>
 
         <!-- Search related database.
-             Legacy gates the whole block — header included — on the item
-             coming from one of the four projects that have a public database
-             search (`DatabaseItem.vue`, `v-if="project === 'ISL' || 'EPM' ||
-             'AWE' || 'DBA'"`), and offers no such link for its own DCA
-             records. On amulets every member was one of those four, so the
-             amulets fork could render the header unconditionally without it
-             ever showing empty; on carpets 400 of the 486 members are DCA,
-             EXTHE or GALLERIES and would have got a heading with nothing
-             under it. -->
+             The gate is on the wrapper rather than on each line because
+             legacy gates the whole block, header included, on the item's
+             project (`DatabaseItem.vue`, `v-if="project === 'ISL' || 'EPM' ||
+             'AWE' || 'DBA'"`). A member from any other project — DCA, an
+             exhibition, a gallery, the Explore database — would otherwise get
+             a heading with nothing under it. -->
         <div v-if="hasRelatedDatabase">
           <p class="related-header">{{ tIn(lang, 'searchRelatedDatabase') }}</p>
           <p class="related-line" v-if="item.project_key === 'ISL' || item.project_key === 'EPM'">

@@ -8,20 +8,19 @@ import { tHtml, dirFor } from '../composables/useUiStrings.js'
 // Timeline entry form.
 //
 // Unlike a gallery, an exhibition can have a chronology of its own. This one
-// does NOT: both flags are false, so the nav offers no Timeline and nothing on
-// the site links here — see `hasTimeline` in useTimeline.js. The page is kept
-// reachable by URL because legacy keeps it reachable by URL; typing /timeline
-// on the live instance still renders this form and its introduction.
+// does not, so this form drives the worldwide country merge and the country
+// select renders. Which of the two is in play is `usesLocalTimeline`, never a
+// literal here — and note it turns on the presence of a `thg_local` row, not
+// on `has_country_timeline`.
 //
-// What it then shows is the worldwide 26-country merge, which the package ships
-// for every DXA site regardless of the flags, so the country select does
-// render here — `usesLocalTimeline` is false for want of a `thg_local` row
-// rather than for want of `has_country_timeline`. On Colours, which has the
-// exhibition's own 45-event narrative, the same code hides the select.
+// Both chronology flags being false also means the nav offers no Timeline and
+// nothing on the site links here (see `hasTimeline`), yet the page stays
+// reachable by URL because legacy keeps it reachable — typing /timeline on the
+// live instance still renders this form and its introduction. So this
+// component must render sensibly for a visitor who arrives with no link.
 //
-// The introduction is `txtTimeline`. Colours owns that key; this exhibition
-// does not, so the text is the shared MWNF Exhibitions one — the same copy the
-// live instance renders on this page.
+// The introduction is `txtTimeline`, which an exhibition may own or inherit
+// from the shared MWNF Exhibitions layer; `tHtml` resolves that.
 const router = useRouter()
 
 const timelineText = computed(() => localiseLinks(tHtml('txtTimeline')))
