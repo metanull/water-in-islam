@@ -22,11 +22,12 @@ import BackLink from '../components/BackLink.vue'
 //
 // ── Hidden partners are excluded, items are not ────────────────────────────
 // `exhibition.json.hidden_partner_ids` is legacy's E6 rule: the museum is
-// hidden from every list and profile page while its items keep rendering. This
-// is the fork where it bites — eleven entries, against none on Colours — and it
-// is what makes the count agree: legacy answers /partners with 98 and
-// /institutions with 21, two rows appear on both, and 128 − 11 hidden = 117 =
-// 98 ∪ 21. Comparing the raw counts would look like an 11-partner overcount.
+// hidden from every list and profile page while its items keep rendering — it
+// hides the museum, not the object, so this must not be pushed down into the
+// item queries. It is also why this page's count cannot be compared against
+// `partners.json` directly: the union of legacy's two endpoints equals the
+// package's rows MINUS the hidden ones, and a raw comparison reads as an
+// overcount.
 //
 // ── Partners that hold nothing are listed, because legacy lists them ────────
 // Legacy's partner query is a three-branch UNION whose third branch — its own

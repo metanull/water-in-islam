@@ -10,7 +10,8 @@ import {
 // label a theme page shows (name, holding museum, location, country) is
 // therefore read off the parent record, which is also what "see the full
 // record" links to. `parent_in_package` says whether that parent is resolvable
-// at all; the exporter reports one picture in this exhibition where it is not.
+// at all — a curated picture whose parent was not exported must still render its
+// own image rather than disappear.
 
 /** The parent record of a picture selection, or null when it is not a member. */
 export function pictureParent(picture) {

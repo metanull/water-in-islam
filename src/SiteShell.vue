@@ -58,9 +58,9 @@ const currentYear = new Date().getFullYear()
 
 const searchInput = ref('')
 // `all-objects` is legacy's sentinel for an empty submission, and the value
-// SearchResults matches on. (The monorepo viewer this site is ported from
-// sends `all-items` here, so an empty search there reports "0 result(s) out of
-// 494" instead of listing everything — see the PR description.)
+// SearchResults matches on. The two must agree: the monorepo viewer sent
+// `all-items` from here while matching `all-objects` there, so an empty search
+// reported no results out of the full count instead of listing everything.
 function submitSearch() {
   router.push({ name: 'search-results', query: { q: searchInput.value || 'all-objects' } })
   searchInput.value = ''

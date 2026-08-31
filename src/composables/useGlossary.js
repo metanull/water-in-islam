@@ -82,8 +82,8 @@ export function linkGlossary(html, terms, lang) {
  * which terms a *record's* description reaches. Curated theme text has no such
  * column — legacy asked the API for `…/themes/<id>/items/<n>/glossary`, which
  * ran the same match server-side — so the candidate set here is the whole
- * glossary, filtered down by what the text contains. The package ships 147
- * terms for this exhibition, so scanning all of them costs nothing.
+ * glossary, filtered down by what the text contains. A package's glossary is
+ * small enough that scanning all of it costs nothing.
  */
 export function termsForText(text, lang) {
   if (!text) return []
