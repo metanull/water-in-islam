@@ -3,8 +3,10 @@ import { computed } from 'vue'
 import {
   relatedContent, legacyImage, countryLabelFromCode, mdInline, md,
 } from '../composables/useExhibitionData.js'
-import { uiLang } from '../composables/useUiStrings.js'
+import { useI18n } from '@metanull/viewer-core'
 import BackLink from '../components/BackLink.vue'
+
+const { locale } = useI18n()
 
 // Legacy's RelatedContent: the exhibition's reading list, grouped by category
 // and ordered inside each group.
@@ -28,7 +30,7 @@ const CATEGORY_NAMES = {
 const CATEGORY_ORDER = [1, 2, 3, 4]
 
 function text(map) {
-  return map?.[uiLang.value] ?? map?.en ?? ''
+  return map?.[locale.value] ?? map?.en ?? ''
 }
 
 function href(entry) {

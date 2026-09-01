@@ -7,6 +7,7 @@ import {
   usesLocalTimeline,
 } from '../composables/useTimeline.js'
 import { paginate } from '../composables/useCollection.js'
+import { useI18n } from '@metanull/viewer-core'
 import PageLinks from '../components/PageLinks.vue'
 import BackLink from '../components/BackLink.vue'
 
@@ -15,6 +16,9 @@ import BackLink from '../components/BackLink.vue'
 // gallery page joins events to items by country and year range client-side.
 const route = useRoute()
 const router = useRouter()
+const { t } = useI18n()
+const era = (year) => eraLabel(year, t)
+const yearBuckets = computed(() => eventYearBuckets(t))
 
 const EVENTS_PER_PAGE = 25
 
@@ -36,7 +40,8 @@ const events = computed(() => findEvents({
 const page = computed(() => paginate(events.value, route.query.page ?? 1, EVENTS_PER_PAGE))
 
 const countryName = computed(() =>
-  timelineCountries.value.find(c => c[0] === String(route.query.c ?? 'all'))?.[1] ?? 'All Countries'
+  timelineCountries.value.find(c => c[0] === String(route.query.c ?? 'all'))?.[1]
+    ?? t('exhibition.timeline.allCountries')
 )
 
 // The exhibition's own chronology names each period itself ("ca. 50.000-30.000
@@ -45,7 +50,7 @@ const countryName = computed(() =>
 // such name and is captioned with the derived era label, as in the galleries.
 function dateLabel(event) {
   if (usesLocalTimeline.value && event.text?.name) return event.text.name
-  return eraLabel(event.year_from)
+  return era(event.year_from)
 }
 
 function goToResults() {
@@ -82,35 +87,37 @@ const galleryItems = computed(() => {
   <div id="timeline-results-wrapper">
     <div id="timeline-results-search-container">
       <p id="current-search">
-        Timeline | {{ route.query.start ? eraLabel(Number(route.query.start)) : 'earliest' }}
-        to {{ route.query.end ? eraLabel(Number(route.query.end)) : 'latest' }} |
+        {{ $t('exhibition.section.timeline') }} |
+        {{ route.query.start ? era(Number(route.query.start)) : $t('exhibition.timeline.earliest') }}
+        {{ $t('exhibition.timeline.to') }}
+        {{ route.query.end ? era(Number(route.query.end)) : $t('exhibition.timeline.latest') }} |
         <span v-if="!usesLocalTimeline">{{ countryName }} | </span>
-        <span>{{ page.total }} Results</span>
+        <span>{{ page.total }} {{ $t('exhibition.results.heading') }}</span>
       </p>
 
       <div id="search-fields">
-        <label>Start Date
+        <label>{{ $t('exhibition.facet.startDate') }}
           <select class="legacy-select" v-model="start">
-            <option value="">Any</option>
-            <option v-for="d in eventYearBuckets" :key="`s${d[0]}`" :value="d[0]">{{ d[1] }}</option>
+            <option value="">{{ $t('exhibition.facet.any') }}</option>
+            <option v-for="d in yearBuckets" :key="`s${d[0]}`" :value="d[0]">{{ d[1] }}</option>
           </select>
         </label>
-        <label>End Date
+        <label>{{ $t('exhibition.facet.endDate') }}
           <select class="legacy-select" v-model="end">
-            <option value="">Any</option>
-            <option v-for="d in eventYearBuckets" :key="`e${d[0]}`" :value="d[0]">{{ d[1] }}</option>
+            <option value="">{{ $t('exhibition.facet.any') }}</option>
+            <option v-for="d in yearBuckets" :key="`e${d[0]}`" :value="d[0]">{{ d[1] }}</option>
           </select>
         </label>
-        <label v-if="!usesLocalTimeline">Country
+        <label v-if="!usesLocalTimeline">{{ $t('exhibition.facet.country') }}
           <select class="legacy-select" v-model="country">
             <option v-for="c in timelineCountries" :key="c[0]" :value="c[0]">{{ c[1] }}</option>
           </select>
         </label>
-        <button class="legacy-button" @click="goToResults()">Go</button>
+        <button class="legacy-button" @click="goToResults()">{{ $t('exhibition.action.go') }}</button>
       </div>
 
       <div id="related-container" v-if="galleryItems.length">
-        <p class="related-header">RELATED CONTENT</p>
+        <p class="related-header related-header--caps">{{ $t('exhibition.related.title') }}</p>
         <p>
           ➤
           <RouterLink :to="{
@@ -121,7 +128,7 @@ const galleryItems = computed(() => {
               end: route.query.end || 'any',
               page: 1,
             },
-          }">See Gallery ({{ galleryItems.length }})</RouterLink>
+          }">{{ $t('exhibition.action.seeGallery') }} ({{ galleryItems.length }})</RouterLink>
         </p>
       </div>
     </div>
@@ -131,7 +138,7 @@ const galleryItems = computed(() => {
 
     <div id="timeline-results-container">
       <div id="labels-container" v-if="page.rows.length">
-        <div id="date-label">Date</div>
+        <div id="date-label">{{ $t('exhibition.results.date') }}</div>
         <div id="country-label">{{ usesLocalTimeline ? 'Description' : 'Country | Description' }}</div>
       </div>
       <div v-if="page.rows.length">

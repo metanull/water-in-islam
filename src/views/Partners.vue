@@ -3,9 +3,9 @@ import { computed, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import {
   visiblePartners, partnerRoute, partnerObjectsRoute, partnerLabel, countryLabel,
-  tr, defaultLang, localiseLinks,
+  tr, defaultLang,
 } from '../composables/useExhibitionData.js'
-import { tHtml, dirFor } from '../composables/useUiStrings.js'
+import { I18nText } from '@metanull/viewer-core'
 import BackLink from '../components/BackLink.vue'
 
 // The partners list, grouped by country with an A–Z / Z–A toggle, exactly as
@@ -52,7 +52,6 @@ const order = ref('a-z')
 
 // `txtPartners` links back into the exhibition by absolute legacy URL; those
 // are rewritten to in-app routes. See `localiseLinks`.
-const partnersText = computed(() => localiseLinks(tHtml('txtPartners')))
 
 const grouped = computed(() => {
   const byCountry = new Map()
@@ -80,13 +79,19 @@ function city(partner) {
     <div id="partners-options-container">
       <BackLink />
       <div id="partners-order">
+        <!-- Both sentences whole, rather than one with the order appended: a
+             translator has to be able to move every word of a text, including
+             the part that used to be a value. -->
         <button class="legacy-button" @click="order = order === 'a-z' ? 'z-a' : 'a-z'">
-          Click here to sort Countries from {{ order === 'a-z' ? 'Z - A' : 'A - Z' }}
+          {{ order === 'a-z' ? $t('exhibition.partner.sortDescending') : $t('exhibition.partner.sortAscending') }}
         </button>
       </div>
     </div>
 
-    <div id="partners-list-description" class="prose" :dir="dirFor('txtPartners')" v-html="partnersText"></div>
+    <!-- A shared entry, not this exhibition's own: the only thing that made the
+         old `txtPartners` exhibition-specific was an absolute URL to its own
+         Themes page, which is `#/themes` now. -->
+    <I18nText id="partners-list-description" class="prose" dir="auto" keypath="exhibition.partners.intro" />
 
     <div id="partners-list-wrapper">
       <section class="partners-list" v-for="[country, list] in grouped" :key="country">
@@ -99,16 +104,16 @@ function city(partner) {
               </RouterLink>
             </div>
             <div class="partner-meta" v-if="partner.item_count">
-              {{ partner.item_count }} object{{ partner.item_count === 1 ? '' : 's' }} in this Exhibition
+              {{ partner.item_count }} {{ $t('exhibition.partner.objectsInExhibition') }}
             </div>
             <div class="partner-meta partner-meta-empty" v-else>
-              Project Partner — no objects in this Exhibition
+              {{ $t('exhibition.partner.noObjectsInExhibition') }}
             </div>
             <div class="partner-links">
-              <RouterLink :to="partnerRoute(partner)">Read more</RouterLink>
+              <RouterLink :to="partnerRoute(partner)">{{ $t('exhibition.action.readMore') }}</RouterLink>
               <template v-if="partner.item_count">
                 <span class="partner-link-divider">|</span>
-                <RouterLink :to="partnerObjectsRoute(partner)">View objects</RouterLink>
+                <RouterLink :to="partnerObjectsRoute(partner)">{{ $t('exhibition.action.viewObjects') }}</RouterLink>
               </template>
             </div>
           </div>

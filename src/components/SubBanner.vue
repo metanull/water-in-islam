@@ -5,7 +5,9 @@ import {
   exhibition, legacyImage, itemById, itemLabel, partnerLabel, countryLabel,
   tr, defaultLang, bannerCaption,
 } from '../composables/useExhibitionData.js'
-import { uiLang, t } from '../composables/useUiStrings.js'
+import { useI18n } from '@metanull/viewer-core'
+
+const { t, locale } = useI18n()
 
 // The narrow banner shown on every page but Home, with the section title
 // overlaid. Section titles are the legacy client's own literals (SubBanner.vue
@@ -28,7 +30,7 @@ const header = computed(() => {
 
 const imageUrl = computed(() => legacyImage(exhibition.banner_image_path, 'hi_res'))
 const bannerItem = computed(() => itemById.value.get(exhibition.banner_item_id) ?? null)
-const curatedCaption = computed(() => bannerCaption(uiLang.value))
+const curatedCaption = computed(() => bannerCaption(locale.value))
 const failed = ref(false)
 
 const caption = computed(() => {
@@ -49,7 +51,7 @@ const caption = computed(() => {
     <img
       v-if="imageUrl && !failed"
       :src="imageUrl"
-      :alt="caption ? `${t('detailCaption')} ${caption.name}` : header"
+      :alt="caption ? `${t('exhibition.media.detailFrom')} ${caption.name}` : header"
       @error="failed = true"
     />
     <div v-else class="sub-banner-fallback"></div>
@@ -58,7 +60,7 @@ const caption = computed(() => {
       <div id="sub-banner-copyright" v-if="curatedCaption || caption">
         <span v-if="curatedCaption">{{ curatedCaption }}</span>
         <template v-else-if="caption">
-          <span id="sub-banner-copyright-name">{{ t('detailCaption') }} {{ caption.name }}</span>
+          <span id="sub-banner-copyright-name">{{ t('exhibition.media.detailFrom') }} {{ caption.name }}</span>
           <span>{{ [caption.partner, caption.location, caption.country].filter(Boolean).join(', ') }}</span>
         </template>
       </div>

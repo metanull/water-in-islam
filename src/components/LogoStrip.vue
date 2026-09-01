@@ -1,7 +1,9 @@
 <script setup>
 import { computed } from 'vue'
 import { exhibition } from '../composables/useExhibitionData.js'
-import { uiLang, t } from '../composables/useUiStrings.js'
+import { useI18n } from '@metanull/viewer-core'
+
+const { t, locale } = useI18n()
 
 // Legacy's LogosComponent: sponsor logos grouped by category, each group under
 // its `footer_logo_section_<categoryId>` heading from the i18n catalogue, each
@@ -35,18 +37,24 @@ const groups = computed(() => {
     }))
 })
 
+// Each heading is written out: a name assembled from the category id would
+// resolve at run time and be invisible to the check that every entry a page
+// asks for exists. Only the two categories that carry real copy are entries —
+// legacy's slots 3 and 4 hold placeholder text ("MIDDLE RIGHT FOOTER SECTION
+// FOR LOGOS"), which is not something to ask a translator for. Those fall back
+// to the legacy category name, exactly as an unlisted category always did.
 function headingFor(categoryId, logo) {
-  const key = `footer_logo_section_${categoryId}`
-  const label = t(key)
-  return label === key ? (logo.category ?? '') : label
+  if (Number(categoryId) === 1) return t('exhibition.sponsors.patronage')
+  if (Number(categoryId) === 2) return t('exhibition.sponsors.support')
+  return logo.category ?? ''
 }
 
 function caption(logo) {
-  return logo.labels?.[uiLang.value] ?? logo.labels?.en ?? ''
+  return logo.labels?.[locale.value] ?? logo.labels?.en ?? ''
 }
 
 function altFor(logo) {
-  return logo.alt_texts?.[uiLang.value] ?? logo.alt_texts?.en ?? logo.alt_text ?? caption(logo)
+  return logo.alt_texts?.[locale.value] ?? logo.alt_texts?.en ?? logo.alt_text ?? caption(logo)
 }
 </script>
 

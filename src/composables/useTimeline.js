@@ -181,10 +181,10 @@ export const eventYearRange = computed(() => {
   return [Math.min(...years), Math.max(...years)]
 })
 
-export const eventYearBuckets = computed(() => {
+export function eventYearBuckets(t) {
   const [min, max] = eventYearRange.value
-  return yearBucketsFromRange(min, max)
-})
+  return yearBucketsFromRange(min, max, t)
+}
 
 /**
  * Legacy's `/events?ic[]=&ya=&yo=` — events for a country within a year range,
@@ -217,9 +217,9 @@ export function findEvents({ countryCode, start, end }) {
 }
 
 /** "1193 A.D." / "502 B.C." — legacy's era suffix rule. */
-export function eraLabel(year) {
+export function eraLabel(year, t) {
   if (!Number.isFinite(year) || year === 0) return ''
-  return year < 0 ? `${Math.abs(year)} B.C.` : `${year} A.D.`
+  return year < 0 ? `${Math.abs(year)} ${t('exhibition.era.bc')}` : `${year} ${t('exhibition.era.ad')}`
 }
 
 /**

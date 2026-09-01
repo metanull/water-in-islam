@@ -23,26 +23,28 @@ import { PageShell } from '@metanull/viewer-layout'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { exhibition } from './composables/useExhibitionData.js'
 import { hasTimeline } from './composables/useTimeline.js'
-import { uiLang, setUiLang, t } from './composables/useUiStrings.js'
+import { useI18n } from '@metanull/viewer-core'
 import HomeBanner from './components/HomeBanner.vue'
 import SubBanner from './components/SubBanner.vue'
 import BottomBanner from './components/BottomBanner.vue'
 import LogoStrip from './components/LogoStrip.vue'
 import PopupLogo from './components/PopupLogo.vue'
 
+const { t, locale } = useI18n()
+
 // `language` and `update:language` are the shell contract of viewer-core: the
-// value it passes down is the vue-i18n locale, and the event it listens for
-// sets it. This site keeps its own `uiLang` alongside, because the exhibition's
-// content strings come from the vendored MWNF catalogues rather than from
-// `locales/` — the two are kept in step here, in the one place that knows
-// about both.
+// value it passes down is the language the application is in, and the event it
+// listens for sets it. There used to be a second language here — `uiLang`, kept
+// in step with this one by hand, because the chrome came from a vendored
+// catalogue rather than from `locales/`. Both now come from the same place, so
+// there is one language and nothing to keep in step.
 //
 // `languages` is declared only so it stops here: viewer-core passes the
 // resolved language list to every shell, and forwarding it to PageShell would
 // grow a language switcher in the navigation bar. This exhibition publishes
 // one enabled language, and per the epic's decision Q2 an exhibition ships one
 // build per enabled language rather than switching between them at runtime.
-const props = defineProps({
+defineProps({
   language: { type: String, default: 'en' },
   languages: { type: Array, default: () => [] },
 })
@@ -66,20 +68,24 @@ function submitSearch() {
   searchInput.value = ''
 }
 
-// Legacy's NavigationComponent, one for one: the label is the value uppercased
-// and the path is the value, with the single rename "related content" → /related.
-// TIMELINE is dropped when the exhibition reports neither chronology — both
-// flags gate the nav entry, not the data.
-const NAV = [
-  { path: 'about', label: 'ABOUT' },
-  { path: 'themes', label: 'THEMES' },
-  { path: 'collection', label: 'COLLECTION' },
-  { path: 'partners', label: 'PARTNERS' },
-  { path: 'timeline', label: 'TIMELINE' },
-  { path: 'related', label: 'RELATED CONTENT' },
-  { path: 'credits', label: 'CREDITS' },
-]
-const navItems = computed(() => NAV.filter((i) => i.path !== 'timeline' || hasTimeline.value))
+// Legacy's NavigationComponent, one for one, with the single rename
+// "related content" → /related. TIMELINE is dropped when the exhibition reports
+// neither chronology — both flags gate the nav entry, not the data.
+//
+// The labels used to be the paths uppercased. They are entries now, each
+// written out so the check that every entry exists can read it, in their
+// natural case: the bar is upper-cased in CSS, which is the only form that
+// means anything in a language without capitals.
+const NAV = computed(() => [
+  { path: 'about', label: t('exhibition.nav.about') },
+  { path: 'themes', label: t('exhibition.nav.themes') },
+  { path: 'collection', label: t('exhibition.nav.collection') },
+  { path: 'partners', label: t('exhibition.nav.partners') },
+  { path: 'timeline', label: t('exhibition.nav.timeline') },
+  { path: 'related', label: t('exhibition.related.title') },
+  { path: 'credits', label: t('exhibition.nav.credits') },
+])
+const navItems = computed(() => NAV.value.filter((i) => i.path !== 'timeline' || hasTimeline.value))
 
 const menuOpen = ref(false)
 
@@ -95,17 +101,8 @@ const headerLogos = computed(() =>
 )
 
 function logoCaption(logo) {
-  return logo.labels?.[uiLang.value] ?? logo.labels?.en ?? logo.alt_text ?? ''
+  return logo.labels?.[locale.value] ?? logo.labels?.en ?? logo.alt_text ?? ''
 }
-
-// The build's language, kept in step with the vue-i18n locale.
-watch(
-  () => props.language,
-  (code) => {
-    if (code && code !== uiLang.value) setUiLang(code)
-  },
-  { immediate: true },
-)
 
 // Scroll handling. `createViewerRouter` builds the router itself and takes no
 // `scrollBehavior`, so the browser keeps the previous page's scroll offset when
@@ -137,7 +134,7 @@ watch(
             <span class="logo-mark">MWNF</span>
           </a>
           <div class="header-logos-container" v-if="headerLogos.length">
-            <div class="header-logos-header">{{ t('header_logo_section_1') }}</div>
+            <div class="header-logos-header">{{ t('exhibition.sponsors.coOrganisers') }}</div>
             <div class="header-logos">
               <a
                 v-for="logo in headerLogos"
@@ -157,20 +154,20 @@ watch(
              banner, not here. -->
         <div id="title-container">
           <RouterLink to="/about">
-            <span id="title">{{ t('headerOnlExh') }}</span>
+            <span id="title">{{ t('exhibition.identity.tagline') }}</span>
           </RouterLink>
         </div>
 
         <div id="portals-search-container">
           <div id="portal-links">
-            <RouterLink to="/">Home</RouterLink>
+            <RouterLink to="/">{{ $t('core.nav.home') }}</RouterLink>
             <span> | </span>
-            <a :href="`${PORTAL}/about`" target="_blank" rel="noopener">About MWNF</a>
+            <a :href="`${PORTAL}/about`" target="_blank" rel="noopener">{{ $t('exhibition.footer.aboutMwnf') }}</a>
           </div>
           <div id="search-container">
             <form @submit.prevent="submitSearch">
-              <input id="search-input" type="search" v-model="searchInput" placeholder='ex. "fragment"' />
-              <button id="search-submit" type="submit" aria-label="Search">⌕</button>
+              <input id="search-input" type="search" v-model="searchInput" :placeholder="$t('exhibition.search.placeholder')" />
+              <button id="search-submit" type="submit" :aria-label="$t('exhibition.search.submit')">⌕</button>
             </form>
           </div>
           <!-- No language switcher: `languages_enabled` holds English alone, and
@@ -190,13 +187,13 @@ watch(
 
     <template #navigation>
       <div id="navigation-inner">
-        <button id="hamburger" @click="menuOpen = !menuOpen" aria-label="Menu">☰</button>
+        <button id="hamburger" @click="menuOpen = !menuOpen" :aria-label="$t('exhibition.nav.menu')">☰</button>
         <ul :class="{ open: menuOpen }">
           <li v-for="item in navItems" :key="item.path" :class="`menu-${item.path}`">
             <RouterLink :to="`/${item.path}`" @click="menuOpen = false">{{ item.label }}</RouterLink>
           </li>
           <li class="menu-my-collection">
-            <a :href="`${PORTAL}/mycollection/index.php`" target="_blank" rel="noopener">MY COLLECTION</a>
+            <a :href="`${PORTAL}/mycollection/index.php`" target="_blank" rel="noopener">{{ $t('exhibition.nav.myCollection') }}</a>
           </li>
         </ul>
       </div>
@@ -214,12 +211,12 @@ watch(
 
     <template #footer>
       <div id="footer-links">
-        <a :href="`${PORTAL}/about`" target="_blank" rel="noopener">About MWNF</a> |
-        <a :href="`${PORTAL}/about/contact`" target="_blank" rel="noopener">Contact</a> |
-        <a :href="`${PORTAL}/about/legal-notice`" target="_blank" rel="noopener">Important Legal Notice</a> |
-        <a :href="`${PORTAL}/about/credits`" target="_blank" rel="noopener">Credits</a> |
-        <a :href="`${PORTAL}/about/cookies`" target="_blank" rel="noopener">Cookies</a> |
-        <span>© Museum With No Frontiers (MWNF) 2004–{{ currentYear }}</span>
+        <a :href="`${PORTAL}/about`" target="_blank" rel="noopener">{{ $t('exhibition.footer.aboutMwnf') }}</a> |
+        <a :href="`${PORTAL}/about/contact`" target="_blank" rel="noopener">{{ $t('exhibition.footer.contact') }}</a> |
+        <a :href="`${PORTAL}/about/legal-notice`" target="_blank" rel="noopener">{{ $t('exhibition.footer.legalNotice') }}</a> |
+        <a :href="`${PORTAL}/about/credits`" target="_blank" rel="noopener">{{ $t('exhibition.footer.credits') }}</a> |
+        <a :href="`${PORTAL}/about/cookies`" target="_blank" rel="noopener">{{ $t('exhibition.footer.cookies') }}</a> |
+        <span>{{ $t('exhibition.footer.copyright') }} 2004–{{ currentYear }}</span>
       </div>
     </template>
   </PageShell>
@@ -324,6 +321,10 @@ watch(
   text-decoration: none;
   padding: 2px 4px;
   font-size: 96%;
+  /* Legacy upper-cased the menu in JavaScript. Doing it in CSS instead keeps
+     each entry stored in its natural case, which is the only form a translator
+     can work with — and the only form that means anything in Arabic. */
+  text-transform: uppercase;
 }
 #navigation-inner a.router-link-active { background: rgba(0, 0, 0, 0.14); }
 #hamburger { display: none; }

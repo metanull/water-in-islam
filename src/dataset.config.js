@@ -7,19 +7,21 @@ import SiteShell from './SiteShell.vue'
 // exhibition ships one build per enabled language; this one enables English
 // alone, so the shell shows no language switcher.
 //
-// English first regardless of the package's order, because viewer-core boots
-// vue-i18n at `languages[0]`.
-const languages = [
-  ...(siteLanguages.includes('en') ? ['en'] : []),
-  ...siteLanguages.filter((code) => code !== 'en'),
-]
+// The list used to be forced to start with English because the site opened at
+// `languages[0]`. viewer-core negotiates the opening language now — an explicit
+// `?lang=`, then the visitor's remembered choice, then their browser, then
+// English — so the package's own order stands. With one enabled language it
+// makes no difference here; it will the day a second one is enabled.
+const languages = siteLanguages
 
 export default {
   // The dataset package this website renders. Must match the alias in
   // vite.config.js and the dependency in package.json.
   datasetPackage: '@metanull/water-in-islam-data',
 
-  siteName: exhibitionTitle(languages[0]),
+  // English is the base language of every catalogue in the platform, so the
+  // name the site is known by is the English one, whatever this build enables.
+  siteName: exhibitionTitle('en'),
 
   // All pages are website-specific views (below) — no generic entity pages.
   features: {

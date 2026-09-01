@@ -4,13 +4,13 @@ import { RouterLink } from 'vue-router'
 
 <template>
   <div class="editorial">
-    <h1 class="page-heading">Page not found</h1>
+    <h1 class="page-heading">{{ $t('exhibition.error.notFoundTitle') }}</h1>
     <div class="prose">
-      <p>That page does not exist in this Exhibition.</p>
+      <p>{{ $t('exhibition.error.notFoundBody') }}</p>
       <p>
-        Try the <RouterLink to="/collection">Collection</RouterLink>,
-        the <RouterLink to="/partners">Partners</RouterLink>,
-        or go back <RouterLink to="/">Home</RouterLink>.
+        Try the <RouterLink to="/collection">{{ $t('exhibition.section.collection') }}</RouterLink>,
+        the <RouterLink to="/partners">{{ $t('exhibition.nav.partners') }}</RouterLink>,
+        or go back <RouterLink to="/">{{ $t('core.nav.home') }}</RouterLink>.
       </p>
     </div>
   </div>

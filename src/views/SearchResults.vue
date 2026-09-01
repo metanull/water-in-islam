@@ -40,17 +40,21 @@ watch(term, () => { if (route.query.page) navigate(1) })
         Database |
         <span>{{ term && term !== 'all-objects' ? `“${term}”` : 'All objects' }}</span>
       </p>
-      <p>{{ page.total }} result(s) out of {{ items.length }} objects</p>
-      <p class="how-to"><RouterLink to="/how-to-search">How to search ›</RouterLink></p>
+      <p>{{ page.total }} {{ $t('exhibition.results.outOf') }} {{ items.length }} {{ $t('exhibition.results.objects') }}</p>
+      <p class="how-to"><RouterLink to="/how-to-search">{{ $t('exhibition.search.howToLink') }} ›</RouterLink></p>
     </div>
 
     <PageLinks :page-info="page" @navigate="navigate" />
 
     <div id="content-container">
       <ObjectGrid v-if="page.rows.length" :results="page.rows" />
+      <!-- Was one sentence with two links threaded through it. The message
+           stands on its own and the two ways out are links beside it. -->
       <p v-else class="no-results">
-        No results for that search. See <RouterLink to="/how-to-search">how to search</RouterLink>,
-        or browse the <RouterLink to="/collection">Collection</RouterLink>.
+        {{ $t('exhibition.results.noSearchResults') }}
+        <RouterLink to="/how-to-search">{{ $t('exhibition.search.howToLink') }}</RouterLink>
+        <span class="no-results-divider">|</span>
+        <RouterLink to="/collection">{{ $t('exhibition.section.collection') }}</RouterLink>
       </p>
     </div>
 

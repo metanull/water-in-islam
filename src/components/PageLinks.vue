@@ -30,8 +30,8 @@ function go(page) {
 
 <template>
   <div class="pages" v-if="pageInfo.lastPage > 1">
-    <button class="page-btn" :disabled="pageInfo.currentPage === 1" @click="go(1)">« First</button>
-    <button class="page-btn" :disabled="pageInfo.currentPage === 1" @click="go(pageInfo.currentPage - 1)">‹ Previous</button>
+    <button class="page-btn" :disabled="pageInfo.currentPage === 1" @click="go(1)">« {{ $t('exhibition.pagination.first') }}</button>
+    <button class="page-btn" :disabled="pageInfo.currentPage === 1" @click="go(pageInfo.currentPage - 1)">‹ {{ $t('core.pagination.previous') }}</button>
     <button
       v-for="p in windowPages"
       :key="p"
@@ -39,13 +39,16 @@ function go(page) {
       :class="{ active: p === pageInfo.currentPage }"
       @click="go(p)"
     >{{ p }}</button>
-    <button class="page-btn" :disabled="pageInfo.currentPage === pageInfo.lastPage" @click="go(pageInfo.currentPage + 1)">Next ›</button>
-    <button class="page-btn" :disabled="pageInfo.currentPage === pageInfo.lastPage" @click="go(pageInfo.lastPage)">Last »</button>
+    <button class="page-btn" :disabled="pageInfo.currentPage === pageInfo.lastPage" @click="go(pageInfo.currentPage + 1)">{{ $t('core.pagination.next') }} ›</button>
+    <button class="page-btn" :disabled="pageInfo.currentPage === pageInfo.lastPage" @click="go(pageInfo.lastPage)">{{ $t('exhibition.pagination.last') }} »</button>
+    <!-- Was "Page [input] of N". The word "of" is gone rather than becoming a
+         second half-sentence: a text is whole or it is not translatable, and
+         the position reads as plainly beside the field as it did inside it. -->
     <span class="pages-jump">
-      Page
+      {{ $t('exhibition.pagination.page') }}
       <input type="number" min="1" :max="pageInfo.lastPage" v-model="jumpTo" @keyup.enter="go(jumpTo)" />
-      of {{ pageInfo.lastPage }}
-      <button class="page-btn" @click="go(jumpTo)">Go</button>
+      / {{ pageInfo.lastPage }}
+      <button class="page-btn" @click="go(jumpTo)">{{ $t('exhibition.action.go') }}</button>
     </span>
   </div>
 </template>
