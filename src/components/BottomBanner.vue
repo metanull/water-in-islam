@@ -2,13 +2,15 @@
 import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
 import { exhibitionTitle, exhibitionSubtitle } from '../composables/useExhibitionData.js'
-import { uiLang, t } from '../composables/useUiStrings.js'
+import { useI18n } from '@metanull/viewer-core'
+
+const { t, locale } = useI18n()
 
 // Legacy's BottomBanner: the exhibition's identity on the left, and the two
 // ways into it — the introduction and the theme tour — on the right. It sits
 // under every page including Home, in a contrast-coloured band.
-const title = computed(() => exhibitionTitle(uiLang.value))
-const subtitle = computed(() => exhibitionSubtitle(uiLang.value))
+const title = computed(() => exhibitionTitle(locale.value))
+const subtitle = computed(() => exhibitionSubtitle(locale.value))
 </script>
 
 <template>
@@ -21,12 +23,12 @@ const subtitle = computed(() => exhibitionSubtitle(uiLang.value))
         </RouterLink>
         <div class="bottom-banner-responsive-wrapper">
           <RouterLink to="/about" class="bottom-banner-link">
-            <div class="bold">ABOUT</div>
-            <div>{{ t('bottomIntrExh') }}</div>
+            <div class="bold">{{ $t('exhibition.nav.about') }}</div>
+            <div>{{ t('exhibition.nav.introduction') }}</div>
           </RouterLink>
           <RouterLink to="/themes" class="bottom-banner-link">
-            <div class="bold">THEMES</div>
-            <div>{{ t('bottomExhCont') }}</div>
+            <div class="bold">{{ $t('exhibition.nav.themes') }}</div>
+            <div>{{ t('exhibition.nav.contentAtAGlance') }}</div>
           </RouterLink>
         </div>
       </div>

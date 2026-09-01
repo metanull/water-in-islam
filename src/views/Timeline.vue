@@ -2,8 +2,7 @@
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { timelineCountries, eventYearBuckets, usesLocalTimeline } from '../composables/useTimeline.js'
-import { localiseLinks } from '../composables/useExhibitionData.js'
-import { tHtml, dirFor } from '../composables/useUiStrings.js'
+import { I18nText, useI18n } from '@metanull/viewer-core'
 
 // Timeline entry form.
 //
@@ -19,11 +18,12 @@ import { tHtml, dirFor } from '../composables/useUiStrings.js'
 // live instance still renders this form and its introduction. So this
 // component must render sensibly for a visitor who arrives with no link.
 //
-// The introduction is `txtTimeline`, which an exhibition may own or inherit
-// from the shared MWNF Exhibitions layer; `tHtml` resolves that.
+// The introduction is a shared entry: the only thing that made the old
+// `txtTimeline` this exhibition's own was an absolute URL to its Themes page —
+// and that URL pointed at a staging host. It is `#/themes` now.
 const router = useRouter()
-
-const timelineText = computed(() => localiseLinks(tHtml('txtTimeline')))
+const { t } = useI18n()
+const yearBuckets = computed(() => eventYearBuckets(t))
 
 const country = ref('')
 const start = ref('')
@@ -41,27 +41,27 @@ function goToResults() {
   <div id="timeline-page">
     <div id="timeline-form">
       <select class="legacy-select" v-model="country" v-if="!usesLocalTimeline">
-        <option value="" disabled>Select a Country</option>
+        <option value="" disabled>{{ $t('exhibition.timeline.selectCountry') }}</option>
         <option v-for="c in timelineCountries" :key="c[0]" :value="c[0]">{{ c[1] }}</option>
       </select>
 
       <div id="timeline-dates-container">
         <select class="legacy-select" v-model="start">
-          <option value="" disabled>Start Date</option>
-          <option v-for="d in eventYearBuckets" :key="`s${d[0]}`" :value="d[0]">{{ d[1] }}</option>
+          <option value="" disabled>{{ $t('exhibition.facet.startDate') }}</option>
+          <option v-for="d in yearBuckets" :key="`s${d[0]}`" :value="d[0]">{{ d[1] }}</option>
         </select>
         <select class="legacy-select" v-model="end">
-          <option value="" disabled>End Date</option>
-          <option v-for="d in eventYearBuckets" :key="`e${d[0]}`" :value="d[0]">{{ d[1] }}</option>
+          <option value="" disabled>{{ $t('exhibition.facet.endDate') }}</option>
+          <option v-for="d in yearBuckets" :key="`e${d[0]}`" :value="d[0]">{{ d[1] }}</option>
         </select>
       </div>
 
       <div id="timeline-go">
-        <button class="legacy-button" @click="goToResults()">Go</button>
+        <button class="legacy-button" @click="goToResults()">{{ $t('exhibition.action.go') }}</button>
       </div>
     </div>
 
-    <div id="timeline-description" class="prose" :dir="dirFor('txtTimeline')" v-html="timelineText"></div>
+    <I18nText id="timeline-description" class="prose" dir="auto" keypath="exhibition.timeline.intro" />
   </div>
 </template>
 

@@ -1,16 +1,22 @@
 <script setup>
-import { tHtml, dirFor } from '../composables/useUiStrings.js'
+import { I18nText } from '@metanull/viewer-core'
 import BackLink from '../components/BackLink.vue'
 
-// `exhibitionCredits` is one of the nine keys this exhibition owns — the rest
-// of its catalogue is the shared MWNF Exhibitions layer (group 59). Legacy
-// rendered this key and nothing else; the page title comes from the sub-banner.
+// The credits name this exhibition's own curators, authors and photographers,
+// so there is nothing generic to inherit and the entry is this website's own.
+// Legacy rendered it and nothing else; the page title comes from the sub-banner.
+//
+// `dir="auto"` replaces the old `dirFor()`, which asked the catalogue whether
+// the active language really had this text and pinned the block left-to-right
+// when it was falling back to English. The runtime does not answer that
+// question any more, and it never needed to be asked: the browser reads the
+// direction off the text it was actually given.
 </script>
 
 <template>
   <div class="editorial">
     <BackLink />
-    <div class="prose" :dir="dirFor('exhibitionCredits')" v-html="tHtml('exhibitionCredits')"></div>
+    <I18nText class="prose" dir="auto" keypath="waterInIslam.credits.body" />
   </div>
 </template>
 

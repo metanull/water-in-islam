@@ -53,9 +53,9 @@ function shortDate(text) {
             </p>
             <!-- Dropped rather than printed empty: the one Explore-database
                  member carries no project, and legacy prints the gap. -->
-            <p class="entry-project" v-if="projectName(item)">for <span>{{ projectName(item) }}</span></p>
+            <p class="entry-project" v-if="projectName(item)">{{ $t('exhibition.results.forProject') }} <span>{{ projectName(item) }}</span></p>
             <RouterLink :to="itemRoute(item)">
-              <p class="entry-link">See Database Entry &gt;</p>
+              <p class="entry-link">{{ $t('exhibition.action.seeDatabaseEntry') }} &gt;</p>
             </RouterLink>
           </div>
         </div>

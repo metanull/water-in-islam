@@ -18,12 +18,19 @@ import {
 // — a superset of legacy, never a different answer.
 export const FACET_CATEGORIES = ['type', 'dynasty', 'subject', 'material', 'artist']
 
-export const FACET_LABELS = {
-  type: 'Type',
-  dynasty: 'Period / Dynasty',
-  subject: 'Subject',
-  material: 'Material',
-  artist: 'Artist',
+/**
+ * The heading each facet dropdown carries. Takes `t` rather than reading it
+ * itself, because this module is not a component; every name is written out so
+ * `viewer-i18n-check` can see the five it asks for.
+ */
+export function facetLabels(t) {
+  return {
+    type: t('exhibition.facet.type'),
+    dynasty: t('exhibition.facet.periodDynasty'),
+    subject: t('exhibition.facet.subject'),
+    material: t('exhibition.facet.material'),
+    artist: t('exhibition.facet.artist'),
+  }
 }
 
 // legacy_tag_id (what the URL carries) → tag record
@@ -119,11 +126,11 @@ function pushIncrements(from, maxRounded, incrementMax, increment, array) {
   }
 }
 
-export function yearBuckets(subset) {
+export function yearBuckets(subset, t) {
   const starts = subset.map(i => i.start_date).filter(v => Number.isFinite(v))
   const ends = subset.map(i => i.end_date ?? i.start_date).filter(v => Number.isFinite(v))
   if (!starts.length || !ends.length) return []
-  return yearBucketsFromRange(Math.min(...starts), Math.max(...ends))
+  return yearBucketsFromRange(Math.min(...starts), Math.max(...ends), t)
 }
 
 /**
@@ -131,7 +138,7 @@ export function yearBuckets(subset) {
  * years instead of item dates (legacy's timeline.js mixin ran this identical
  * algorithm over `/events/years`).
  */
-export function yearBucketsFromRange(min, max) {
+export function yearBucketsFromRange(min, max, t) {
   if (!Number.isFinite(min) || !Number.isFinite(max)) return []
 
   const increments = [500, 250, 100, 50]
@@ -176,21 +183,21 @@ export function yearBucketsFromRange(min, max) {
 
   const labelled = []
   for (const year of unique) {
-    if (year < 0) labelled.push([year, `${Math.abs(year)} B.C.`])
-    else if (year > 0) labelled.push([year, `${year} A.D.`])
+    if (year < 0) labelled.push([year, `${Math.abs(year)} ${t('exhibition.era.bc')}`])
+    else if (year > 0) labelled.push([year, `${year} ${t('exhibition.era.ad')}`])
   }
   if (!labelled.length) return []
 
   let display = labelled
   if (labelled[0][0] < -1000) {
     display = labelled.filter(([y]) => y >= -1000)
-    display.unshift([min, 'Before 1000 B.C.'])
+    display.unshift([min, `${t('exhibition.era.before')} 1000 ${t('exhibition.era.bc')}`])
   }
 
   if (display.length > 1) {
     const lastGap = display[display.length - 1][0] - display[display.length - 2][0]
     if (lastGap < smallestIncrement) {
-      display[display.length - 1][1] = `After ${display[display.length - 2][1]}`
+      display[display.length - 1][1] = `${t('exhibition.era.after')} ${display[display.length - 2][1]}`
     }
   }
   return display

@@ -8,7 +8,9 @@ import {
 } from '../composables/useExhibitionData.js'
 import { pictureParent, itemDetailString } from '../composables/useThemePresentation.js'
 import { termsForText, linkGlossary } from '../composables/useGlossary.js'
-import { uiLang, t } from '../composables/useUiStrings.js'
+import { useI18n } from '@metanull/viewer-core'
+
+const { t, locale } = useI18n()
 
 // The theme page — legacy's ThemeComponent, which also serves /about by
 // rendering the About theme (display order 1) with the exhibition's own title
@@ -116,19 +118,19 @@ function select(picture) {
 
 // ── Text ───────────────────────────────────────────────────────────────────
 
-const nodeText = computed(() => themeText(node.value, uiLang.value))
+const nodeText = computed(() => themeText(node.value, locale.value))
 const themeTitle = computed(
-  () => themeText(theme.value, uiLang.value).title ?? theme.value?.internal_name ?? ''
+  () => themeText(theme.value, locale.value).title ?? theme.value?.internal_name ?? ''
 )
 
 const heading = computed(() =>
-  props.aboutMode ? exhibitionTitle(uiLang.value) : themeTitle.value
+  props.aboutMode ? exhibitionTitle(locale.value) : themeTitle.value
 )
 
 const subHeading = computed(() => {
-  if (props.aboutMode) return exhibitionSubtitle(uiLang.value)
+  if (props.aboutMode) return exhibitionSubtitle(locale.value)
   if (subTheme.value) return nodeText.value.title ?? subTheme.value.internal_name ?? ''
-  return 'Overview'
+  return t('exhibition.theme.overview')
 })
 
 // Glossary linking. Legacy asked the API which terms occur in each block and
@@ -137,14 +139,14 @@ const subHeading = computed(() => {
 function withGlossary(text) {
   if (!text) return ''
   const html = md(text)
-  return linkGlossary(html, termsForText(text, uiLang.value), uiLang.value)
+  return linkGlossary(html, termsForText(text, locale.value), locale.value)
 }
 
 const quoteHtml = computed(() => withGlossary(nodeText.value.quote))
 const presentationHtml = computed(() => withGlossary(nodeText.value.presentation))
 
 const selectedText = computed(() =>
-  selected.value ? pictureText(node.value, selected.value, uiLang.value) : {}
+  selected.value ? pictureText(node.value, selected.value, locale.value) : {}
 )
 const contextualHtml = computed(() => withGlossary(selectedText.value.contextual_description))
 
@@ -153,7 +155,7 @@ const openTerm = ref(null)
 const terms = computed(() => {
   const map = new Map()
   for (const source of [nodeText.value.quote, nodeText.value.presentation, selectedText.value.contextual_description]) {
-    for (const term of termsForText(source, uiLang.value)) map.set(term.id, term)
+    for (const term of termsForText(source, locale.value)) map.set(term.id, term)
   }
   return map
 })
@@ -169,7 +171,7 @@ function onProseClick(event) {
 
 function captionFor(picture) {
   const parent = pictureParent(picture)
-  const text = pictureText(node.value, picture, uiLang.value)
+  const text = pictureText(node.value, picture, locale.value)
   return {
     imageCaption: text.image_caption ?? '',
     name: parent ? itemLabel(parent) : '',
@@ -198,11 +200,11 @@ const selectedTargets = computed(() => {
 const selectedSource = computed(() => relatedTo.value.get(selectedId.value) ?? null)
 
 function relationText(link) {
-  return link?.descriptions?.[uiLang.value] ?? link?.descriptions?.en ?? ''
+  return link?.descriptions?.[locale.value] ?? link?.descriptions?.en ?? ''
 }
 
 function reciprocalText(link) {
-  return link?.reciprocal_descriptions?.[uiLang.value] ?? link?.reciprocal_descriptions?.en ?? ''
+  return link?.reciprocal_descriptions?.[locale.value] ?? link?.reciprocal_descriptions?.en ?? ''
 }
 
 // ── Previous / next ────────────────────────────────────────────────────────
@@ -248,7 +250,7 @@ function nextTheme(id) {
 const subThemeNav = computed(() =>
   (theme.value?.sub_themes ?? []).map((sub, index) => ({
     index: index + 1,
-    title: themeText(sub, uiLang.value).title ?? sub.internal_name ?? '',
+    title: themeText(sub, locale.value).title ?? sub.internal_name ?? '',
   }))
 )
 
@@ -287,7 +289,9 @@ const routeId = computed(() => themeRouteId(theme.value))
         <div class="thumbnails-section-controls" v-if="hasRelated">
           <label class="toggle">
             <input type="checkbox" v-model="showAll" />
-            <span>{{ showAll ? 'Hide' : 'Add' }} Related Works</span>
+            <!-- Two whole sentences rather than a word swapped inside one: a
+                 translator has to be able to move every part of a text. -->
+            <span>{{ showAll ? $t('exhibition.theme.hideRelatedWorks') : $t('exhibition.theme.addRelatedWorks') }}</span>
           </label>
         </div>
       </div>
@@ -315,7 +319,7 @@ const routeId = computed(() => themeRouteId(theme.value))
               v-if="selectedCaption.parent"
               class="theme-component-selected-detail database-entry-link"
               :to="itemRoute(selectedCaption.parent, defaultLang)"
-            >See Database entry for this Item</RouterLink>
+            >{{ $t('exhibition.theme.seeItemEntry') }}</RouterLink>
             <!-- Decision Q3: a picture whose parent is not a member of this
                  exhibition says so rather than linking nowhere. -->
             <div class="theme-component-selected-detail unresolved" v-else>
@@ -323,7 +327,7 @@ const routeId = computed(() => themeRouteId(theme.value))
             </div>
           </div>
         </div>
-        <div v-else class="theme-component-no-images">Additional content coming soon.</div>
+        <div v-else class="theme-component-no-images">{{ $t('exhibition.theme.additionalContent') }}</div>
 
         <!-- Text column -->
         <div class="theme-component-content" @click="onProseClick">
@@ -336,7 +340,7 @@ const routeId = computed(() => themeRouteId(theme.value))
 
           <!-- Related items: the selected picture as a source -->
           <div class="related-items-container" v-if="selectedTargets.length">
-            <div class="related-items-header">{{ t('relatedItems') }}</div>
+            <div class="related-items-header">{{ t('exhibition.related.items') }}</div>
             <div class="related-items-images-container">
               <div class="related-items-image main-image">
                 <img :src="selected.image_url" :alt="selectedCaption.name" />
@@ -366,9 +370,9 @@ const routeId = computed(() => themeRouteId(theme.value))
 
           <!-- Related to: the selected picture as a target -->
           <div class="related-to-container" v-if="selectedSource">
-            <div class="related-to-header">{{ t('relatedItems') }}</div>
+            <div class="related-to-header">{{ t('exhibition.related.items') }}</div>
             <div class="theme-component-selected-justification reciprocal-description">
-              {{ reciprocalText(selectedSource.link) || t('reciprocalDescription') }}
+              {{ reciprocalText(selectedSource.link) || t('exhibition.related.reciprocal') }}
             </div>
             <div class="related-to-image">
               <img
@@ -385,18 +389,18 @@ const routeId = computed(() => themeRouteId(theme.value))
 
           <!-- Tour navigation -->
           <div class="theme-component-navigation-next-previous-wrapper">
-            <RouterLink v-if="previous" :to="previous" class="theme-nav previous">← PREVIOUS</RouterLink>
+            <RouterLink v-if="previous" :to="previous" class="theme-nav previous">← {{ $t('exhibition.theme.previous') }}</RouterLink>
             <span v-else></span>
-            <RouterLink v-if="next" :to="next" class="theme-nav next">NEXT →</RouterLink>
+            <RouterLink v-if="next" :to="next" class="theme-nav next">{{ $t('exhibition.theme.next') }} →</RouterLink>
           </div>
 
           <div class="theme-component-link-navigation-container" v-if="subThemeNav.length && !aboutMode">
-            <div class="theme-component-link-navigation-section-label">In This Theme</div>
+            <div class="theme-component-link-navigation-section-label">{{ $t('exhibition.theme.inThisTheme') }}</div>
             <div class="theme-component-link-navigation-overview">
               <RouterLink
                 :to="`/theme/${routeId}/overview`"
                 :class="{ bold: subIndex === null }"
-              >Overview</RouterLink>
+              >{{ $t('exhibition.theme.overview') }}</RouterLink>
             </div>
             <div class="theme-component-link-navigation" v-for="entry in subThemeNav" :key="entry.index">
               <RouterLink
@@ -411,8 +415,8 @@ const routeId = computed(() => themeRouteId(theme.value))
 
     <!-- Glossary pop-up -->
     <div class="glossary-entry-container" v-if="openTerm">
-      <button class="glossary-close" @click="openTerm = null" aria-label="Close">✕</button>
-      <div class="glossary-header">{{ t('glossary') }}</div>
+      <button class="glossary-close" @click="openTerm = null" :aria-label="$t('exhibition.ui.close')">✕</button>
+      <div class="glossary-header">{{ t('exhibition.nav.glossary') }}</div>
       <div class="glossary-entry">
         <div class="glossary-word">{{ openTerm.word }}</div>
         <div class="glossary-definition prose" v-html="md(openTerm.definition)"></div>
@@ -420,7 +424,7 @@ const routeId = computed(() => themeRouteId(theme.value))
     </div>
   </div>
 
-  <div class="loader" v-else>This theme is not part of the exhibition.</div>
+  <div class="loader" v-else>{{ $t('exhibition.theme.notInExhibition') }}</div>
 </template>
 
 <style scoped>

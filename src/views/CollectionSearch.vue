@@ -1,22 +1,23 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { useRouter, RouterLink } from 'vue-router'
-import { items, localiseLinks } from '../composables/useExhibitionData.js'
+import { items } from '../composables/useExhibitionData.js'
 import {
-  countryOptions, facetOptions, yearBuckets, FACET_CATEGORIES, FACET_LABELS,
+  countryOptions, facetOptions, yearBuckets, facetLabels, FACET_CATEGORIES,
 } from '../composables/useCollection.js'
-import { tHtml, dirFor } from '../composables/useUiStrings.js'
+import { I18nText, useI18n } from '@metanull/viewer-core'
 
 // The collection entry form. Every dropdown is built from the *whole* member
 // universe here — narrowing only starts once a selection exists, which is what
 // takes you to /collection-results.
 const router = useRouter()
+const { t } = useI18n()
 
-const collectionText = computed(() => localiseLinks(tHtml('txtCollection')))
 const all = computed(() => items.value)
 const countries = computed(() => countryOptions(all.value))
 const facets = computed(() => facetOptions(all.value))
-const years = computed(() => yearBuckets(all.value))
+const years = computed(() => yearBuckets(all.value, t))
+const labels = computed(() => facetLabels(t))
 
 const selection = ref({ country: '', type: '', dynasty: '', subject: '', material: '', artist: '', start: '', end: '' })
 
@@ -32,10 +33,10 @@ const visibleFacets = computed(() =>
 <template>
   <div id="collection-search-container">
     <div id="dropdowns">
-      <div id="dropdown-label">Filter by:</div>
+      <div id="dropdown-label">{{ $t('exhibition.facet.filterBy') }}</div>
       <div id="select-container">
         <select class="legacy-select" v-model="selection.country" @change="goToResults('country', selection.country)">
-          <option value="" disabled>Select Country</option>
+          <option value="" disabled>{{ $t('exhibition.facet.selectCountry') }}</option>
           <option v-for="c in countries" :key="c[0]" :value="c[0]">{{ c[1] }}</option>
         </select>
 
@@ -46,32 +47,30 @@ const visibleFacets = computed(() =>
           v-model="selection[category]"
           @change="goToResults(category, selection[category])"
         >
-          <option value="" disabled>{{ FACET_LABELS[category] }}</option>
+          <option value="" disabled>{{ labels[category] }}</option>
           <option v-for="tag in facets[category]" :key="tag[0]" :value="tag[0]">{{ tag[1] }}</option>
         </select>
 
         <div id="dates-container">
           <select class="legacy-select" v-model="selection.start" @change="goToResults('start', selection.start)">
-            <option value="" disabled>Start Date</option>
+            <option value="" disabled>{{ $t('exhibition.facet.startDate') }}</option>
             <option v-for="d in years" :key="`s${d[0]}`" :value="d[0]">{{ d[1] }}</option>
           </select>
           <select class="legacy-select" v-model="selection.end" @change="goToResults('end', selection.end)">
-            <option value="" disabled>End Date</option>
+            <option value="" disabled>{{ $t('exhibition.facet.endDate') }}</option>
             <option v-for="d in years" :key="`e${d[0]}`" :value="d[0]">{{ d[1] }}</option>
           </select>
         </div>
       </div>
     </div>
 
-    <!-- Unlike the gallery client, which hardcoded this copy in English, the
-         exhibitions client renders `txtCollection` from the catalogue — and it
-         is one of the nine keys this exhibition owns, so the text is the
-         curator's rather than the platform's. Its links are absolute legacy
-         URLs; they are rewritten to in-app routes on the way out so the page
-         does not send a visitor off this build. -->
-    <div id="description" class="prose" :dir="dirFor('txtCollection')" v-html="collectionText"></div>
+    <!-- A shared entry, not this exhibition's own: the only thing that made the
+         old `txtCollection` exhibition-specific was an absolute URL to its own
+         Themes page, which is `#/themes` now. That also retires `localiseLinks`,
+         which existed to rewrite those URLs back into in-app routes. -->
+    <I18nText id="description" class="prose" dir="auto" keypath="exhibition.collection.intro" />
     <p id="how-to-search-link">
-      <RouterLink to="/how-to-search">How to search</RouterLink>
+      <RouterLink to="/how-to-search">{{ $t('exhibition.search.howToLink') }}</RouterLink>
     </p>
   </div>
 </template>

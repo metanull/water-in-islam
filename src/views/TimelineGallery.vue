@@ -4,6 +4,7 @@ import { useRoute, useRouter, RouterLink } from 'vue-router'
 import { items, countryLabel } from '../composables/useExhibitionData.js'
 import { sortChronological, paginate } from '../composables/useCollection.js'
 import { countryIdForCode, eraLabel } from '../composables/useTimeline.js'
+import { useI18n } from '@metanull/viewer-core'
 import ObjectGrid from '../components/ObjectGrid.vue'
 import PageLinks from '../components/PageLinks.vue'
 import BackLink from '../components/BackLink.vue'
@@ -15,6 +16,8 @@ import BackLink from '../components/BackLink.vue'
 // range client-side").
 const route = useRoute()
 const router = useRouter()
+const { t } = useI18n()
+const era = (year) => eraLabel(year, t)
 
 const countryId = computed(() => countryIdForCode(route.params.country))
 const start = computed(() => (route.params.start === 'any' ? null : Number(route.params.start)))
@@ -43,16 +46,18 @@ function navigate(p) {
 
     <div id="gallery-header">
       <p>
-        Timeline Gallery |
-        <span>{{ countryId ? countryLabel(countryId) : 'All Countries' }}</span>
+        {{ $t('exhibition.timeline.galleryHeading') }} |
+        <span>{{ countryId ? countryLabel(countryId) : $t('exhibition.timeline.allCountries') }}</span>
         <span v-if="start != null || end != null">
-          | {{ start != null ? eraLabel(start) : 'earliest' }} to {{ end != null ? eraLabel(end) : 'latest' }}
+          | {{ start != null ? era(start) : $t('exhibition.timeline.earliest') }}
+          {{ $t('exhibition.timeline.to') }}
+          {{ end != null ? era(end) : $t('exhibition.timeline.latest') }}
         </span>
       </p>
-      <p>{{ page.total }} object(s)</p>
+      <p>{{ page.total }} {{ $t('exhibition.results.objects') }}</p>
       <p class="back-to-events">
         <RouterLink :to="{ name: 'timeline-results', query: { c: route.params.country, start: route.params.start === 'any' ? '' : route.params.start, end: route.params.end === 'any' ? '' : route.params.end } }">
-          ➤ Back to the events
+          ➤ {{ $t('exhibition.timeline.backToEvents') }}
         </RouterLink>
       </p>
     </div>
@@ -61,7 +66,7 @@ function navigate(p) {
 
     <div id="content-container">
       <ObjectGrid v-if="page.rows.length" :results="page.rows" />
-      <p v-else class="no-results">No objects from this Gallery fall in that country and period.</p>
+      <p v-else class="no-results">{{ $t('exhibition.results.noObjectsInPeriod') }}</p>
     </div>
 
     <PageLinks :page-info="page" @navigate="navigate" />

@@ -1,16 +1,16 @@
 <script setup>
-import { tHtml, dirFor } from '../composables/useUiStrings.js'
+import { I18nText } from '@metanull/viewer-core'
 import BackLink from '../components/BackLink.vue'
 
-// Editorial page, straight from the site-i18n catalogue (`searchHowTo`).
-// The whole essay is about MySQL boolean full-text operators, which is why
-// useCollection.js implements that grammar rather than a plain substring match.
+// Editorial page, shared by every exhibition. The whole essay is about MySQL
+// boolean full-text operators, which is why useCollection.js implements that
+// grammar rather than a plain substring match.
 </script>
 
 <template>
   <div class="editorial">
     <BackLink />
-    <div class="prose" :dir="dirFor('searchHowTo')" v-html="tHtml('searchHowTo')"></div>
+    <I18nText class="prose" dir="auto" keypath="exhibition.search.howTo" />
   </div>
 </template>
 

@@ -5,9 +5,11 @@ import {
   partnerFromKey, partnerRoute, partnerObjectsRoute, partnerLabel, countryLabel,
   tr, loadTranslations, availableLanguages, defaultLang, languageByCode, md,
 } from '../composables/useExhibitionData.js'
-import { tIn, isRtl } from '../composables/useUiStrings.js'
+import { isRtl, useI18n } from '@metanull/viewer-core'
 import BackLink from '../components/BackLink.vue'
 import PartnerMap from '../components/PartnerMap.vue'
+
+const { t } = useI18n()
 
 // Legacy has two page templates for the same record — PartnerProfile for a
 // museum, InstitutionProfile for a monument's owning institution — because it
@@ -105,7 +107,7 @@ const website = computed(() => {
 
     <BackLink />
 
-    <div v-if="!ready" class="loader">Loading…</div>
+    <div v-if="!ready" class="loader">{{ $t('core.status.loading') }}</div>
 
     <div v-else id="partner-profile" :dir="rtl ? 'rtl' : 'ltr'">
       <p id="partner-name">{{ partnerLabel(partner.id) }}</p>
@@ -115,14 +117,14 @@ const website = computed(() => {
 
       <div id="partner-links-container">
         <div id="partner-links">
-          <button :class="{ active: tab === 'description' }" @click="tab = 'description'">About</button>
+          <button :class="{ active: tab === 'description' }" @click="tab = 'description'">{{ $t('exhibition.partner.about') }}</button>
           <template v-if="hasContact">
             <span class="divider">|</span>
-            <button :class="{ active: tab === 'contact' }" @click="tab = 'contact'">Contact</button>
+            <button :class="{ active: tab === 'contact' }" @click="tab = 'contact'">{{ $t('exhibition.partner.contact') }}</button>
           </template>
           <template v-if="partner.logos?.length">
             <span class="divider">|</span>
-            <button :class="{ active: tab === 'logo' }" @click="tab = 'logo'">Logo</button>
+            <button :class="{ active: tab === 'logo' }" @click="tab = 'logo'">{{ $t('exhibition.partner.logo') }}</button>
           </template>
           <template v-if="website">
             <span class="divider">|</span>
@@ -150,7 +152,7 @@ const website = computed(() => {
               >
                 <img :src="pic.url" :alt="`${partnerLabel(partner.id)} — ${index + 1}`" />
                 <div class="tooltip-text" v-if="pic.photographer || pic.copyright">
-                  <div v-if="pic.photographer">{{ tIn(lang, 'photograph') }}: {{ pic.photographer }}</div>
+                  <div v-if="pic.photographer">{{ t('exhibition.item.photograph') }}: {{ pic.photographer }}</div>
                   <div v-if="pic.copyright">© {{ pic.copyright }}</div>
                 </div>
               </div>
@@ -162,16 +164,16 @@ const website = computed(() => {
           <div class="prose" v-if="tab === 'description'" v-html="md(info.description)"></div>
 
           <div v-else-if="tab === 'contact'">
-            <p class="contact-header">Address(es)</p>
+            <p class="contact-header">{{ $t('exhibition.partner.addresses') }}</p>
             <div class="prose" v-html="md(info.address)"></div>
-            <p v-if="info.phone">T {{ info.phone }}</p>
+            <p v-if="info.phone">{{ $t('exhibition.partner.phone') }} {{ info.phone }}</p>
             <p v-if="info.email"><a :href="`mailto:${info.email}`">{{ info.email }}</a></p>
             <p v-if="website"><a :href="website" target="_blank" rel="noopener">{{ info.website }}</a></p>
             <div class="contact-person" v-for="person in contacts" :key="person.name ?? person.email">
               <p class="contact-title" v-if="person.title">{{ person.title }}</p>
               <p v-if="person.name">{{ person.name }}</p>
-              <p v-if="person.phone">T {{ person.phone }}</p>
-              <p v-if="person.fax">F {{ person.fax }}</p>
+              <p v-if="person.phone">{{ $t('exhibition.partner.phone') }} {{ person.phone }}</p>
+              <p v-if="person.fax">{{ $t('exhibition.partner.fax') }} {{ person.fax }}</p>
               <p v-if="person.email"><a :href="`mailto:${person.email}`">{{ person.email }}</a></p>
             </div>
             <div class="additional-urls" v-if="partner.additional_urls?.length">

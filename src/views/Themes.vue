@@ -5,7 +5,9 @@ import {
   listedThemes, themeText, themeRouteId, romanFor, mdStrip,
 } from '../composables/useExhibitionData.js'
 import { themeCover, pictureCaption, truncate } from '../composables/useThemePresentation.js'
-import { uiLang, t } from '../composables/useUiStrings.js'
+import { useI18n } from '@metanull/viewer-core'
+
+const { t, locale } = useI18n()
 
 // Legacy's ThemesPage: an accordion of the exhibition's top-level themes, each
 // collapsed to a strip of four crops of its cover and expanded to cover +
@@ -18,7 +20,7 @@ import { uiLang, t } from '../composables/useUiStrings.js'
 const themes = computed(() =>
   listedThemes.value.map(theme => {
     const cover = themeCover(theme)
-    const text = themeText(theme, uiLang.value)
+    const text = themeText(theme, locale.value)
     return {
       theme,
       routeId: themeRouteId(theme),
@@ -29,7 +31,7 @@ const themes = computed(() =>
       coverCaption: cover ? pictureCaption(cover) : '',
       subThemes: (theme.sub_themes ?? []).map(sub => ({
         id: sub.id,
-        title: themeText(sub, uiLang.value).title ?? sub.internal_name ?? '',
+        title: themeText(sub, locale.value).title ?? sub.internal_name ?? '',
       })),
     }
   })
@@ -54,7 +56,7 @@ function isOpen(index) {
   <div id="themes-wrapper">
     <div id="themes-container">
       <div class="theme-show-all" @click="showAll = !showAll; openIndex = null">
-        <span>{{ showAll ? t('collapseThemes') : t('expandThemes') }}</span>
+        <span>{{ showAll ? t('exhibition.theme.collapseAll') : t('exhibition.theme.expandAll') }}</span>
       </div>
 
       <div class="theme-container" v-for="(entry, index) in themes" :key="entry.theme.id">
@@ -87,11 +89,11 @@ function isOpen(index) {
               <RouterLink
                 class="theme-list-overview theme-list-link"
                 :to="`/theme/${entry.routeId}/overview`"
-              >See more</RouterLink>
+              >{{ $t('exhibition.action.seeMore') }}</RouterLink>
             </div>
 
             <div class="theme-subthemes-container" v-if="entry.subThemes.length">
-              <div class="theme-subthemes-header">In This Theme</div>
+              <div class="theme-subthemes-header">{{ $t('exhibition.theme.inThisTheme') }}</div>
               <div
                 v-for="(sub, subIndex) in entry.subThemes"
                 :key="sub.id"

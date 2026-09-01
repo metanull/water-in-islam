@@ -7,10 +7,13 @@ import {
   languageByCode, md, mdInline, mdStrip, itemById,
   projectName as projectNameOf, projectFamily, isHiddenPartner,
 } from '../composables/useExhibitionData.js'
-import { tIn, isRtl } from '../composables/useUiStrings.js'
+import { isRtl, useI18n } from '@metanull/viewer-core'
 import { termsForItem, linkGlossary, searchGlossary } from '../composables/useGlossary.js'
 import { findEvents, eraLabel, roundOutward, timelineCountries, countryIdForCode, hasTimeline } from '../composables/useTimeline.js'
 import BackLink from '../components/BackLink.vue'
+
+const { t } = useI18n()
+const era = (year) => eraLabel(year, t)
 
 const route = useRoute()
 const router = useRouter()
@@ -137,7 +140,14 @@ watch([description, shortDescription, showShort], () => nextTick(bindGlossaryLin
 // manuscript records, so a dataset with no manuscripts carries none and the
 // rows never appear — the same empty-value filtering every other row gets, not
 // a reason to leave them out.
-const L = (key) => tIn(lang.value, key)
+//
+// The labels used to be looked up in the *record's* language — `lang` above,
+// which comes from the route, not from the visitor's choice. They are in the
+// language the visitor is reading the website in now. The two are the same
+// whenever the sheet was reached by picking a language, and where they differ
+// (a deep link into a borrowed record in a language this exhibition does not
+// offer) the labels fall back to English, which is where legacy pinned them
+// anyway. Flagged for the pilot review on the story issue.
 
 const fields = computed(() => {
   const s = sheet.value
@@ -152,31 +162,31 @@ const fields = computed(() => {
     .join(', ')
 
   const rows = [
-    ['name', L('objName'), mdInline(s.name)],
-    ['aka', L('objAKA'), mdInline(s.alternate_name)],
-    ['location', L('objLocation'), [s.location, countryLabel(it.country_id)].filter(Boolean).join(', ')],
-    ['museum', L('objHoldingMuseum'), null],           // rendered as a profile link
-    ['originalOwner', L('objOriginalOwner'), mdInline(s.initial_owner)],
-    ['currentOwner', L('objCurrentOwner'), mdInline(s.owner)],
-    ['date', L('objDate'), mdInline(s.dates)],
-    ['artist', L('objArtist'), (it.artist_names ?? []).join(', ')],
-    ['scribe', L('objScribe'), mdInline(s.scriber)],
-    ['workshop', L('objWorkshop'), mdInline(s.workshop)],
-    ['type', L('objType'), mdInline(s.type)],
-    ['inventoryNumber', L('objInventoryNumber'), it.owner_reference],
-    ['materials', L('objMaterials'), (s.materials ?? []).join('; ')],
-    ['dimensions', L('objDimensions'), mdInline(s.dimensions)],
-    ['dynasty', L('objDynasty'), dynastyNames],
-    ['production', L('objPlaceOfProduction'), mdInline(s.place_of_production)],
-    ['provenance', L('objProvenance'), mdInline(s.provenance)],
-    ['binding', L('objBinding'), mdInline(s.binding_desc)],
-    ['description', L('objDescription'), description.value],
-    ['shortDescription', bothDescriptions.value ? L('objShortDesc_show') : L('objDescription'), shortDescription.value],
-    ['catalogue', L('objDigitLink'), s.linkcatalogs],
-    ['obtention', L('objObtentionMethod'), mdInline(s.obtention)],
-    ['datation', L('objDatationMethod'), mdInline(s.method_for_datation)],
-    ['provenanceMethod', L('objProvenanceMethod'), mdInline(s.method_for_provenance)],
-    ['bibliography', L('objBibliography'), md(s.bibliography)],
+    ['name', t('exhibition.sheet.name'), mdInline(s.name)],
+    ['aka', t('exhibition.sheet.alsoKnownAs'), mdInline(s.alternate_name)],
+    ['location', t('exhibition.sheet.location'), [s.location, countryLabel(it.country_id)].filter(Boolean).join(', ')],
+    ['museum', t('exhibition.sheet.holdingMuseum'), null],           // rendered as a profile link
+    ['originalOwner', t('exhibition.sheet.originalOwner'), mdInline(s.initial_owner)],
+    ['currentOwner', t('exhibition.sheet.currentOwner'), mdInline(s.owner)],
+    ['date', t('exhibition.sheet.date'), mdInline(s.dates)],
+    ['artist', t('exhibition.sheet.artists'), (it.artist_names ?? []).join(', ')],
+    ['scribe', t('exhibition.sheet.scribe'), mdInline(s.scriber)],
+    ['workshop', t('exhibition.sheet.workshop'), mdInline(s.workshop)],
+    ['type', t('exhibition.sheet.type'), mdInline(s.type)],
+    ['inventoryNumber', t('exhibition.sheet.inventoryNumber'), it.owner_reference],
+    ['materials', t('exhibition.sheet.materials'), (s.materials ?? []).join('; ')],
+    ['dimensions', t('exhibition.sheet.dimensions'), mdInline(s.dimensions)],
+    ['dynasty', t('exhibition.sheet.periodDynasty'), dynastyNames],
+    ['production', t('exhibition.sheet.placeOfProduction'), mdInline(s.place_of_production)],
+    ['provenance', t('exhibition.sheet.provenance'), mdInline(s.provenance)],
+    ['binding', t('exhibition.sheet.binding'), mdInline(s.binding_desc)],
+    ['description', t('exhibition.sheet.description'), description.value],
+    ['shortDescription', bothDescriptions.value ? t('exhibition.sheet.shortDescription') : t('exhibition.sheet.description'), shortDescription.value],
+    ['catalogue', t('exhibition.sheet.catalogueLink'), s.linkcatalogs],
+    ['obtention', t('exhibition.sheet.obtentionMethod'), mdInline(s.obtention)],
+    ['datation', t('exhibition.sheet.datationMethod'), mdInline(s.method_for_datation)],
+    ['provenanceMethod', t('exhibition.sheet.provenanceMethod'), mdInline(s.method_for_provenance)],
+    ['bibliography', t('exhibition.sheet.bibliography'), md(s.bibliography)],
   ]
   return rows.filter(([key, , value]) => key === 'museum' ? Boolean(partner.value) : Boolean(value))
 })
@@ -190,10 +200,10 @@ const copyEditedBy = computed(() => sheet.value.copy_editor ?? attribution.value
 const citation = computed(() => {
   const s = sheet.value
   return [
-    [L('objPreparedBy'), preparedBy.value],
-    [L('objCopyeditedBy'), copyEditedBy.value],
-    [L('objTranslationBy'), s.translator],
-    [L('objTransCopyeditedBy'), s.translation_copy_editor],
+    [t('exhibition.sheet.preparedBy'), preparedBy.value],
+    [t('exhibition.sheet.copyeditedBy'), copyEditedBy.value],
+    [t('exhibition.sheet.translationBy'), s.translator],
+    [t('exhibition.sheet.translationCopyeditedBy'), s.translation_copy_editor],
   ].filter(([, v]) => Boolean(v))
 })
 
@@ -337,7 +347,7 @@ function printSheet() {
 
     <BackLink />
 
-    <div v-if="!ready" class="loader">Loading…</div>
+    <div v-if="!ready" class="loader">{{ $t('core.status.loading') }}</div>
 
     <div v-else id="database-object-wrapper" :dir="rtl ? 'rtl' : 'ltr'">
       <div id="photo-info-wrapper">
@@ -358,7 +368,7 @@ function printSheet() {
             >
               <img :src="pic.url" :alt="`${itemLabel(item)} — ${index + 1}`" />
               <div class="tooltip-text" v-if="pic.photographer || pic.copyright">
-                <div v-if="pic.photographer">{{ tIn(lang, 'photograph') }}: {{ pic.photographer }}</div>
+                <div v-if="pic.photographer">{{ t('exhibition.item.photograph') }}: {{ pic.photographer }}</div>
                 <div v-if="pic.copyright">© {{ pic.copyright }}</div>
               </div>
             </div>
@@ -374,12 +384,12 @@ function printSheet() {
                  when legacy has no project name to print. -->
             <p id="source-reference" v-if="projectFamily(item)">
               <span class="project-chip" :class="`project-${projectFamily(item)}`">{{ item.project_key || projectFamily(item) }}</span>
-              <template v-if="projectName">{{ tIn(lang, 'sourceDatabase') }}: {{ projectName }}</template>
+              <template v-if="projectName">{{ t('exhibition.item.sourceDatabase') }}: {{ projectName }}</template>
             </p>
             <p id="source-uid"><code>{{ item.backward_compatibility }}</code></p>
             <p id="add-collection-link">
               <a :href="`${PORTAL}/mycollection/index.php`" target="_blank" rel="noopener">
-                ↗ {{ tIn(lang, 'addToCollection') }}
+                ↗ {{ t('exhibition.item.addToCollection') }}
               </a>
             </p>
           </div>
@@ -388,7 +398,7 @@ function printSheet() {
         <!-- Sheet -->
         <div id="info-container">
           <div id="info-eiac" v-if="showEiacNotice">
-            {{ tIn(lang, 'note_EIAC') }} <strong><em>{{ languageNameList }}</em></strong>
+            {{ t('exhibition.item.explorePartnerNote') }} <strong><em>{{ languageNameList }}</em></strong>
           </div>
 
           <div v-for="[key, label, value] in fields" :key="key">
@@ -421,15 +431,15 @@ function printSheet() {
                and the citation, not among the fields. Absent until the item
                carries one, like every row above. -->
           <div id="info-copyright" v-if="sheet.copyright">
-            <p class="info-label">{{ L('objCopyrightInfo') }}</p>
+            <p class="info-label">{{ t('exhibition.sheet.copyrightInformation') }}</p>
             <div class="info" v-html="mdInline(sheet.copyright)"></div>
           </div>
 
           <div id="citation-block">
-            <p class="info-label">{{ tIn(lang, 'citation') }}</p>
+            <p class="info-label">{{ t('exhibition.item.citation') }}</p>
             <p id="info-citation">
               <span v-if="preparedBy">{{ preparedBy }} </span>
-              "<span v-html="mdInline(sheet.name)"></span>" {{ tIn(lang, 'in') }}
+              "<span v-html="mdInline(sheet.name)"></span>" {{ t('exhibition.item.in') }}
               <span id="info-project-name">{{ projectName }}</span>,
               Museum With No Frontiers, {{ new Date().getFullYear() }}.
             </p>
@@ -437,7 +447,7 @@ function printSheet() {
               <span class="info-authors-label">{{ label }} </span>{{ value }}
             </div>
             <p class="info-working-number" v-if="item.mwnf_reference">
-              {{ tIn(lang, 'objWorkingNumber') }} {{ item.mwnf_reference }}
+              {{ t('exhibition.sheet.workingNumber') }} {{ item.mwnf_reference }}
             </p>
           </div>
         </div>
@@ -445,12 +455,12 @@ function printSheet() {
 
       <!-- ── Related content ────────────────────────────────────────────── -->
       <div id="related-content-container">
-        <p class="related-header">{{ tIn(lang, 'relatedContent').toUpperCase() }}</p>
-        <p id="related-description">{{ tIn(lang, 'relatedContentDescription') }}</p>
+        <p class="related-header">{{ t('exhibition.related.title').toUpperCase() }}</p>
+        <p id="related-description">{{ t('exhibition.related.description') }}</p>
 
         <!-- Related items inside this gallery -->
         <div v-if="relatedInPackage.length">
-          <p class="related-sub">{{ tIn(lang, 'relatedObjects') }}</p>
+          <p class="related-sub">{{ t('exhibition.related.objects') }}</p>
           <div id="related-objects-wrapper">
             <RouterLink
               v-for="r in relatedInPackage"
@@ -471,12 +481,12 @@ function printSheet() {
         <!-- Related items this gallery does not ship. The link is not dropped —
              it is shown as the reference it is, awaiting a resolver. -->
         <div v-if="relatedOutside.length">
-          <p class="related-sub">{{ tIn(lang, 'relatedItems') }}</p>
+          <p class="related-sub">{{ t('exhibition.related.items') }}</p>
           <ul class="reference-list">
             <li v-for="r in relatedOutside" :key="r.id">
               <span class="project-chip" :class="`project-${projectFamily(r)}`">{{ r.project_key || projectFamily(r) }}</span>
               <code>{{ r.backward_compatibility }}</code>
-              <span class="unresolved-note">not in this exhibition</span>
+              <span class="unresolved-note">{{ $t('exhibition.results.notInThisExhibition') }}</span>
             </li>
           </ul>
         </div>
@@ -485,7 +495,7 @@ function printSheet() {
              from ISL/EPM sheets. -->
         <div v-if="item.project_key === 'ISL' || item.project_key === 'EPM'">
           <p class="related-line">
-            <a :href="`${ISLAMIC_ART}/gai/ISL/`" target="_blank" rel="noopener">↗ {{ tIn(lang, 'artisticIntroduction') }}</a>
+            <a :href="`${ISLAMIC_ART}/gai/ISL/`" target="_blank" rel="noopener">↗ {{ t('exhibition.nav.artisticIntroduction') }}</a>
           </p>
         </div>
 
@@ -493,28 +503,28 @@ function printSheet() {
              reports no chronology: legacy prints no "timeline" anywhere on the
              sheet in that case, not merely a nav entry short. -->
         <div v-if="hasTimeline && (itemEvents.length || itemRange[0] != null)">
-          <p class="related-line clickable" @click="togglePopup('timeline')">➤ {{ tIn(lang, 'timeline') }}</p>
+          <p class="related-line clickable" @click="togglePopup('timeline')">➤ {{ t('exhibition.item.timeline') }}</p>
           <div class="popout" v-if="openPopup === 'timeline'" dir="ltr">
             <div class="popout-close" @click="openPopup = null">✕</div>
-            <div class="popout-title">Timeline</div>
+            <div class="popout-title">{{ $t('exhibition.section.timeline') }}</div>
             <div class="popout-option">
-              <label>See events for:</label>
+              <label>{{ $t('exhibition.timeline.searchIntro') }}</label>
               <select v-model="timelineCountry">
                 <option v-for="c in timelineCountries" :key="c[0]" :value="c[0]">{{ c[1] }}</option>
               </select>
               <RouterLink
                 class="popout-full-link"
                 :to="{ name: 'timeline-results', query: { c: timelineCountry, start: itemRange[0], end: itemRange[1] } }"
-              >➤ Click here to begin a full Timeline search</RouterLink>
+              >➤ {{ $t('exhibition.timeline.beginFullSearch') }}</RouterLink>
             </div>
             <div class="popout-scroll">
               <div class="popout-subheader">
                 {{ timelineCountries.find(c => c[0] === timelineCountry)?.[1] }},
-                {{ eraLabel(itemRange[0]) }} – {{ eraLabel(itemRange[1]) }}
+                {{ era(itemRange[0]) }} – {{ era(itemRange[1]) }}
               </div>
-              <div v-if="!itemEvents.length" class="popout-empty">No events recorded for this period.</div>
+              <div v-if="!itemEvents.length" class="popout-empty">{{ $t('exhibition.timeline.noEvents') }}</div>
               <div class="timeline-event" v-for="event in itemEvents" :key="event.id">
-                <div class="timeline-date">{{ eraLabel(event.year_from) }}</div>
+                <div class="timeline-date">{{ era(event.year_from) }}</div>
                 <div v-html="md(event.text.description)"></div>
               </div>
             </div>
@@ -523,11 +533,11 @@ function printSheet() {
 
         <!-- Glossary tool -->
         <div>
-          <p class="related-line clickable" @click="togglePopup('glossaryTool')">➤ {{ tIn(lang, 'glossary') }}</p>
+          <p class="related-line clickable" @click="togglePopup('glossaryTool')">➤ {{ t('exhibition.nav.glossary') }}</p>
           <div class="popout" v-if="openPopup === 'glossaryTool'">
             <div class="popout-close" @click="openPopup = null">✕</div>
-            <div class="popout-title">{{ tIn(lang, 'glossary') }}</div>
-            <div class="popout-instructions">{{ tIn(lang, 'glossaryInstructions') }}</div>
+            <div class="popout-title">{{ t('exhibition.nav.glossary') }}</div>
+            <div class="popout-instructions">{{ t('exhibition.glossary.instructions') }}</div>
             <input class="glossary-input" type="text" v-model="glossaryInput" />
             <ul class="glossary-list" v-if="glossaryInput && !selectedGlossary">
               <li
@@ -537,7 +547,7 @@ function printSheet() {
               >{{ hit.spelling }}</li>
             </ul>
             <div class="popout-scroll" v-if="selectedGlossary">
-              <p class="info-label">{{ tIn(lang, 'definition') }}</p>
+              <p class="info-label">{{ t('exhibition.glossary.definition') }}</p>
               <div v-html="md(selectedGlossary.definition)"></div>
             </div>
           </div>
@@ -545,12 +555,12 @@ function printSheet() {
 
         <!-- Dynasties -->
         <div v-if="dynastyEntries.length">
-          <p class="related-sub">{{ tIn(lang, 'islamicDynasties') }}</p>
+          <p class="related-sub">{{ t('exhibition.nav.islamicDynasties') }}</p>
           <div v-for="dynasty in dynastyEntries" :key="dynasty.id">
             <p class="related-line clickable" @click="togglePopup(`dynasty:${dynasty.id}`)">➤ {{ dynasty.name }}</p>
             <div class="popout" v-if="openPopup === `dynasty:${dynasty.id}`">
               <div class="popout-close" @click="openPopup = null">✕</div>
-              <div class="popout-title">{{ tIn(lang, 'theDynasties') }}</div>
+              <div class="popout-title">{{ t('exhibition.nav.dynastiesHeading') }}</div>
               <div class="popout-scroll">
                 <div class="dynasty-name">{{ dynasty.name }}</div>
                 <p v-if="dynasty.also_known_as">{{ dynasty.also_known_as }}</p>
@@ -567,7 +577,7 @@ function printSheet() {
 
         <!-- Audio / video -->
         <div v-if="item.media?.length">
-          <p class="related-sub">{{ tIn(lang, 'relatedAudioVideos') }}</p>
+          <p class="related-sub">{{ t('exhibition.related.audioVideos') }}</p>
           <p class="related-line" v-for="file in item.media" :key="file.url">
             <a :href="file.url" target="_blank" rel="noopener">↗ {{ file.title ?? file.url }}</a>
           </p>
@@ -575,21 +585,21 @@ function printSheet() {
 
         <!-- On display in -->
         <div v-if="galleryRefs.length || exhibitionRefs.length">
-          <p class="related-header">{{ tIn(lang, 'onDisplayIn') }}</p>
+          <p class="related-header">{{ t('exhibition.item.onDisplayIn') }}</p>
 
           <div v-if="exhibitionRefs.length">
-            <p class="related-sub">{{ tIn(lang, 'exhibitions') }}</p>
+            <p class="related-sub">{{ t('exhibition.nav.exhibitions') }}</p>
             <p class="related-line" v-for="ref in exhibitionRefs" :key="ref.id">
               <a v-if="ref.legacy_host" :href="ref.legacy_host" target="_blank" rel="noopener">↗ {{ ref.name }}</a>
-              <span v-else>{{ ref.name }} <span class="unresolved-note">link pending</span></span>
+              <span v-else>{{ ref.name }} <span class="unresolved-note">{{ $t('exhibition.item.linkPending') }}</span></span>
             </p>
           </div>
 
           <div v-if="galleryRefs.length">
-            <p class="related-sub">{{ tIn(lang, 'galleries') }}</p>
+            <p class="related-sub">{{ t('exhibition.nav.galleries') }}</p>
             <p class="related-line" v-for="ref in galleryRefs" :key="ref.id">
               <a v-if="ref.legacy_host" :href="ref.legacy_host" target="_blank" rel="noopener">↗ {{ ref.name }}</a>
-              <span v-else>{{ ref.name }} <span class="unresolved-note">link pending</span></span>
+              <span v-else>{{ ref.name }} <span class="unresolved-note">{{ $t('exhibition.item.linkPending') }}</span></span>
             </p>
           </div>
         </div>
@@ -602,30 +612,30 @@ function printSheet() {
              exhibition, a gallery, the Explore database — would otherwise get
              a heading with nothing under it. -->
         <div v-if="hasRelatedDatabase">
-          <p class="related-header">{{ tIn(lang, 'searchRelatedDatabase') }}</p>
+          <p class="related-header">{{ t('exhibition.search.relatedDatabase') }}</p>
           <p class="related-line" v-if="item.project_key === 'ISL' || item.project_key === 'EPM'">
-            <a :href="`${ISLAMIC_ART}/database.php`" target="_blank" rel="noopener">↗ Discover Islamic Art</a>
+            <a :href="`${ISLAMIC_ART}/database.php`" target="_blank" rel="noopener">↗ {{ $t('exhibition.project.islamicArt') }}</a>
           </p>
           <p class="related-line" v-if="item.project_key === 'DBA' || item.project_key === 'BAR'">
-            <a :href="`${BAROQUE_ART}/database.php`" target="_blank" rel="noopener">↗ Discover Baroque Art</a>
+            <a :href="`${BAROQUE_ART}/database.php`" target="_blank" rel="noopener">↗ {{ $t('exhibition.project.baroqueArt') }}</a>
           </p>
           <p class="related-line" v-if="item.project_key === 'AWE' || item.project_key === 'awe'">
-            <a :href="`${SHARING_HISTORY}/database.php`" target="_blank" rel="noopener">↗ Sharing History</a>
+            <a :href="`${SHARING_HISTORY}/database.php`" target="_blank" rel="noopener">↗ {{ $t('exhibition.project.sharingHistory') }}</a>
           </p>
         </div>
 
         <!-- The portal search sits outside that gate in legacy too: every
              sheet offers it, whatever the record's project. -->
         <div>
-          <p class="related-header">{{ tIn(lang, 'goToFullSearch') }}</p>
+          <p class="related-header">{{ t('exhibition.search.overallDatabase') }}</p>
           <p class="related-line">
-            <a :href="`${PORTAL}/database_searchform.php`" target="_blank" rel="noopener">↗ {{ tIn(lang, 'overallDatabase') }}</a>
+            <a :href="`${PORTAL}/database_searchform.php`" target="_blank" rel="noopener">↗ {{ t('exhibition.nav.overallDatabase') }}</a>
           </p>
         </div>
 
         <div>
-          <p class="related-header">{{ tIn(lang, 'download') }}</p>
-          <p class="related-line clickable" @click="printSheet()">➤ {{ tIn(lang, 'asPDF') }}</p>
+          <p class="related-header">{{ t('exhibition.item.download') }}</p>
+          <p class="related-line clickable" @click="printSheet()">➤ {{ t('exhibition.item.downloadPdf') }}</p>
         </div>
       </div>
     </div>
@@ -633,7 +643,7 @@ function printSheet() {
     <!-- Glossary word popup -->
     <div class="glossary-popup" v-if="openTerm" :dir="rtl ? 'rtl' : 'ltr'">
       <div class="popout-close" @click="openTerm = null">✕</div>
-      <div class="popout-title">{{ tIn(lang, 'glossary') }}</div>
+      <div class="popout-title">{{ t('exhibition.nav.glossary') }}</div>
       <div class="popout-scroll">
         <div class="glossary-word">{{ openTerm.word }}</div>
         <div v-html="md(openTerm.definition)"></div>

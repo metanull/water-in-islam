@@ -6,7 +6,9 @@ import {
   tr, defaultLang, exhibitionTitle, exhibitionSubtitle, exhibitionHeadline,
   bannerCaption,
 } from '../composables/useExhibitionData.js'
-import { uiLang, t } from '../composables/useUiStrings.js'
+import { useI18n } from '@metanull/viewer-core'
+
+const { t, locale } = useI18n()
 
 // The exhibition home banner: image on the left, the exhibition's own curated
 // chrome on the right — title, sub-title, the banner headline, and the ENTER
@@ -19,14 +21,14 @@ import { uiLang, t } from '../composables/useUiStrings.js'
 const imageUrl = computed(() => legacyImage(exhibition.banner_image_path, 'hi_res'))
 const bannerItem = computed(() => itemById.value.get(exhibition.banner_item_id) ?? null)
 
-const title = computed(() => exhibitionTitle(uiLang.value))
-const subtitle = computed(() => exhibitionSubtitle(uiLang.value))
-const headline = computed(() => exhibitionHeadline(uiLang.value))
+const title = computed(() => exhibitionTitle(locale.value))
+const subtitle = computed(() => exhibitionSubtitle(locale.value))
+const headline = computed(() => exhibitionHeadline(locale.value))
 
 // The caption legacy renders on hover. `banner_captions` is the curated line
 // when there is one; otherwise it is assembled from the banner item's sheet,
 // exactly as legacy's `objectInfo` was.
-const curatedCaption = computed(() => bannerCaption(uiLang.value))
+const curatedCaption = computed(() => bannerCaption(locale.value))
 
 const caption = computed(() => {
   const item = bannerItem.value
@@ -51,7 +53,7 @@ const failed = ref(false)
         <img
           v-if="imageUrl && !failed"
           :src="imageUrl"
-          :alt="caption ? `${t('detailCaption')} ${caption.name}` : title"
+          :alt="caption ? `${t('exhibition.media.detailFrom')} ${caption.name}` : title"
           @error="failed = true"
         />
         <div v-else class="banner-fallback"></div>
@@ -59,7 +61,7 @@ const failed = ref(false)
         <div id="banner-copyright" v-if="hover && (curatedCaption || caption)">
           <span v-if="curatedCaption">{{ curatedCaption }}</span>
           <template v-else-if="caption">
-            <span id="banner-copyright-name">{{ t('detailCaption') }} {{ caption.name }}</span>
+            <span id="banner-copyright-name">{{ t('exhibition.media.detailFrom') }} {{ caption.name }}</span>
             <span>{{ [caption.partner, caption.location, caption.country].filter(Boolean).join(', ') }}</span>
           </template>
         </div>
@@ -73,11 +75,11 @@ const failed = ref(false)
         <div id="banner-headline" v-html="headline"></div>
         <div id="banner-enter">
           <RouterLink to="/about">
-            <div>ENTER</div>
+            <div>{{ $t('exhibition.action.enter') }}</div>
             <div aria-hidden="true">↓</div>
           </RouterLink>
         </div>
-        <div id="exhibition-tagline">A MWNF online exhibition.</div>
+        <div id="exhibition-tagline">{{ $t('exhibition.identity.strapline') }}</div>
       </div>
     </div>
   </div>

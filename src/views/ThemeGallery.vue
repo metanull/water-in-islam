@@ -8,7 +8,9 @@ import { pictureParent } from '../composables/useThemePresentation.js'
 import { sortChronological } from '../composables/useCollection.js'
 import ObjectGrid from '../components/ObjectGrid.vue'
 import BackLink from '../components/BackLink.vue'
-import { uiLang } from '../composables/useUiStrings.js'
+import { useI18n } from '@metanull/viewer-core'
+
+const { locale } = useI18n()
 
 // Legacy's ThemeGallery: every record a theme touches, as one grid, with a
 // dropdown that narrows it to a single sub-theme.
@@ -36,7 +38,7 @@ const subThemes = computed(() =>
   (theme.value?.sub_themes ?? []).map((sub, index) => ({
     index: index + 1,
     id: sub.id,
-    title: themeText(sub, uiLang.value).title ?? sub.internal_name ?? '',
+    title: themeText(sub, locale.value).title ?? sub.internal_name ?? '',
     node: sub,
   }))
 )
@@ -69,7 +71,7 @@ const results = computed(() => {
   return sortChronological(out)
 })
 
-const title = computed(() => themeText(theme.value, uiLang.value).title ?? theme.value?.internal_name ?? '')
+const title = computed(() => themeText(theme.value, locale.value).title ?? theme.value?.internal_name ?? '')
 const roman = computed(() => romanFor(theme.value?.display_order ?? 1))
 
 function onSubThemeChange(event) {
@@ -96,13 +98,13 @@ function onSubThemeChange(event) {
     <div id="theme-gallery-content">
       <div id="theme-gallery-objects">
         <ObjectGrid v-if="results.length" :results="results" />
-        <p v-else class="no-results">This theme has no records in the exhibition.</p>
+        <p v-else class="no-results">{{ $t('exhibition.theme.noRecords') }}</p>
       </div>
 
       <div class="subtheme-filter" v-if="subThemes.length">
-        <div class="options-label">Filter by Subtheme:</div>
+        <div class="options-label">{{ $t('exhibition.theme.filterBySubtheme') }}</div>
         <select class="legacy-select" :value="subIndex ?? ''" @change="onSubThemeChange">
-          <option value="">Select Subtheme</option>
+          <option value="">{{ $t('exhibition.theme.selectSubtheme') }}</option>
           <option v-for="sub in subThemes" :key="sub.id" :value="sub.index">
             {{ sub.index }}. {{ sub.title }}
           </option>
@@ -116,7 +118,7 @@ function onSubThemeChange(event) {
     </div>
   </div>
 
-  <div class="loader" v-else>This theme is not part of the exhibition.</div>
+  <div class="loader" v-else>{{ $t('exhibition.theme.notInExhibition') }}</div>
 </template>
 
 <style scoped>
