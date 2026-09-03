@@ -1,6 +1,6 @@
 import { ref, computed } from 'vue'
 import { marked } from 'marked'
-import { renderBlock, renderInline } from '@metanull/viewer-core'
+import { renderBlock, renderInline, useDataPackage } from '@metanull/viewer-core'
 
 import manifestData from '@inventory-data/manifest.json'
 import exhibitionData from '@inventory-data/exhibition.json'
@@ -286,49 +286,17 @@ export function themePictures(theme) {
 // has no translation in that language, so every load path must tolerate a miss.
 // English is loaded eagerly (it drives every list and label); other languages
 // are loaded on demand by the item sheet and the partner profile.
+// Delegates to viewer-core's useDataPackage() — the shared, glob-based
+// loader — rather than a local copy of the same glob/cache.
 
-const loaders = import.meta.glob('@inventory-data/translations/*.json')
-
-function loaderFor(entity, lang) {
-  const suffix = `/translations/${entity}.${lang}.json`
-  const key = Object.keys(loaders).find(k => k.endsWith(suffix))
-  return key ? loaders[key] : null
-}
-
-/** Which languages this export actually has a file for, per entity. */
-export function availableLanguages(entity) {
-  const prefix = `/translations/${entity}.`
-  return Object.keys(loaders)
-    .filter(k => k.includes(prefix))
-    .map(k => k.slice(k.lastIndexOf(prefix) + prefix.length, -'.json'.length))
-}
-
-// cache: `${entity}.${lang}` → record map (or {} when the file is absent)
-const cache = ref({})
-
-export async function loadTranslations(entity, lang) {
-  const key = `${entity}.${lang}`
-  if (cache.value[key]) return cache.value[key]
-  const load = loaderFor(entity, lang)
-  let data = {}
-  if (load) {
-    try {
-      data = (await load()).default ?? {}
-    } catch {
-      data = {}
-    }
-  }
-  cache.value = { ...cache.value, [key]: data }
-  return data
-}
-
-export function translations(entity, lang) {
-  return cache.value[`${entity}.${lang}`] ?? {}
-}
+const dataPackage = useDataPackage()
+export const availableLanguages = dataPackage.availableLanguages
+export const loadTranslations = dataPackage.loadTranslations
+export const translations = dataPackage.translations
 
 /** One record's translation, falling back to English then to nothing. */
 export function tr(entity, id, lang) {
-  return translations(entity, lang)[id] ?? translations(entity, defaultLang)[id] ?? {}
+  return dataPackage.tr(entity, id, lang, defaultLang)
 }
 
 const EN_ENTITIES = [
