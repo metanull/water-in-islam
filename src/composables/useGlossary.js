@@ -1,13 +1,13 @@
 import { glossaryById, translations } from './useExhibitionData.js'
 
-// The item sheet links glossary terms inside its own description text, which is
-// why the package ships a spelling list per term per language rather than a
-// single headword: legacy built one regex per spelling and rewrote the rendered
-// HTML in place (DatabaseItem.vue), including a distinct Arabic variant, since
-// `\b` does not fire between Arabic letters — it used the character-class
-// negation `[^،-٩]` instead.
-
-const escape = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+// The item sheet and the theme pages highlight glossary terms inside their
+// own texts, which is why the package ships a spelling list per term per
+// language rather than a single headword. The highlighting itself is
+// viewer-core's: `md()` takes the `[{ id, spelling }]` list `glossaryFor`
+// builds and marks every occurrence as
+// `<span class="gloss-term" data-gid="…">` while it parses — whole words,
+// longest spelling first, in any script — so nothing here touches rendered
+// HTML.
 
 /**
  * Glossary terms reachable from one item, with their spellings in `lang`.
@@ -30,48 +30,13 @@ export function termsForItem(item, lang) {
   return out
 }
 
-/**
- * Wrap every glossary spelling found in `html` with a clickable anchor.
- * Only text outside existing tags is touched, so markup already in the
- * description survives untouched.
- */
-export function linkGlossary(html, terms, lang) {
-  if (!html || !terms.length) return html ?? ''
-
-  // One alternation for every spelling of every term, longest first so
-  // "Ayat al-Kursi" wins over "Ayat". A single pass matters: replacing term by
-  // term would let a later pattern match inside the anchor an earlier one had
-  // just inserted.
-  const byText = new Map()
+/** The spelling list viewer-core's renderers highlight: one entry per spelling of each term. */
+export function glossaryFor(terms) {
+  const out = []
   for (const term of terms) {
-    for (const spelling of term.spellings) {
-      const key = spelling.toLowerCase()
-      if (!byText.has(key)) byText.set(key, term.id)
-    }
+    for (const spelling of term.spellings) out.push({ id: term.id, spelling })
   }
-  const spellings = [...byText.keys()].sort((a, b) => b.length - a.length)
-  if (!spellings.length) return html
-  const alternation = spellings.map(escape).join('|')
-
-  const arabic = lang === 'ar'
-  const re = arabic
-    ? new RegExp(`(^|[^،-٩])(${alternation})(?=[^،-٩]|$)`, 'gi')
-    : new RegExp(`\\b(${alternation})(s?)\\b`, 'gi')
-
-  const anchor = (core, suffix = '') => {
-    const id = byText.get(core.toLowerCase())
-    if (!id) return `${core}${suffix}`
-    return `<a href="#" class="glossary-link" data-term="${id}">${core}${suffix}</a>`
-  }
-
-  // Split on tags so only text nodes are rewritten; markup already in the
-  // description survives untouched.
-  return html.split(/(<[^>]+>)/g).map(segment => {
-    if (segment.startsWith('<')) return segment
-    return arabic
-      ? segment.replace(re, (_m, lead, core) => `${lead}${anchor(core)}`)
-      : segment.replace(re, (_m, core, plural) => anchor(core, plural ?? ''))
-  }).join('')
+  return out
 }
 
 /**

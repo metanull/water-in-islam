@@ -1,11 +1,11 @@
 <script setup>
 import { computed, ref, watch, onMounted } from 'vue'
-import { useRoute, useRouter, RouterLink } from 'vue-router'
+import { useRoute, RouterLink } from 'vue-router'
 import {
-  partnerFromKey, partnerRoute, partnerObjectsRoute, partnerLabel, countryLabel,
+  visiblePartnerById, partnerObjectsRoute, partnerLabel, countryLabel,
   tr, loadTranslations, availableLanguages, defaultLang, languageByCode, md,
 } from '../composables/useExhibitionData.js'
-import { isRtl, useI18n } from '@metanull/viewer-core'
+import { NotFoundView, useI18n, useRecordLanguage } from '@metanull/viewer-core'
 import BackLink from '../components/BackLink.vue'
 import PartnerMap from '../components/PartnerMap.vue'
 
@@ -14,23 +14,24 @@ const { t } = useI18n()
 // Legacy has two page templates for the same record — PartnerProfile for a
 // museum, InstitutionProfile for a monument's owning institution — because it
 // has one endpoint each. A data package has neither, so this is one component
-// and `variant` supplies the three strings that actually differ.
+// and `variant` supplies the two entries that actually differ.
 const props = defineProps({
   variant: { type: String, default: 'partner' },
 })
 
 const isInstitutionView = computed(() => props.variant === 'institution')
 const homepageLabel = computed(() =>
-  isInstitutionView.value ? '↗ Go to the Institution’s homepage' : '↗ Go to the Partner’s homepage'
+  isInstitutionView.value
+    ? t('exhibition.action.institutionHomepage')
+    : t('exhibition.action.partnerHomepage'),
 )
-const itemsLabel = computed(() => (isInstitutionView.value ? 'View Items' : 'View Objects'))
+const itemsLabel = computed(() =>
+  isInstitutionView.value ? t('exhibition.action.viewItems') : t('exhibition.action.viewObjects'),
+)
 
 const route = useRoute()
-const router = useRouter()
 
-const partner = computed(() => partnerFromKey(route.params.country, route.params.id))
-const lang = computed(() => route.params.language ?? defaultLang)
-const rtl = computed(() => isRtl(lang.value))
+const partner = computed(() => visiblePartnerById(route.params.id))
 const ready = ref(false)
 
 // Which languages this partner record actually has. Legacy read `i18nLinks`;
@@ -45,15 +46,21 @@ const partnerLanguages = computed(() => {
   })
 })
 
+// The record's language: the site language where the partner has it, English
+// otherwise, and the visitor's toggle on this profile alone.
+const { language: lang, dir, select } = useRecordLanguage(partner, {
+  languages: () => partnerLanguages.value,
+})
+
 async function load() {
   ready.value = false
-  if (!partner.value) { router.replace({ name: 'error' }); return }
+  if (!partner.value) { ready.value = true; return }
   await Promise.all(availableLanguages('partners').map(code => loadTranslations('partners', code)))
   await loadTranslations('partners', lang.value)
   ready.value = true
 }
 onMounted(load)
-watch(() => [route.params.country, route.params.id, route.params.language].join('|'), load)
+watch(() => [route.params.id, lang.value].join('|'), load)
 
 const info = computed(() => (partner.value ? tr('partners', partner.value.id, lang.value) : {}))
 
@@ -81,11 +88,6 @@ function languageName(code) {
   return languageByCode.value.get(code)?.names?.[code] ?? code.toUpperCase()
 }
 
-function setLanguage(code) {
-  if (code === lang.value) return
-  router.push(partnerRoute(partner.value, code))
-}
-
 const website = computed(() => {
   const url = info.value.website
   if (!url) return null
@@ -101,7 +103,7 @@ const website = computed(() => {
         :key="code"
         class="languages-button"
         :class="{ 'language-selected': code === lang }"
-        @click="setLanguage(code)"
+        @click="select(code)"
       >{{ languageName(code) }}</button>
     </div>
 
@@ -109,7 +111,7 @@ const website = computed(() => {
 
     <div v-if="!ready" class="loader">{{ $t('core.status.loading') }}</div>
 
-    <div v-else id="partner-profile" :dir="rtl ? 'rtl' : 'ltr'">
+    <div v-else id="partner-profile" :dir="dir">
       <p id="partner-name">{{ partnerLabel(partner.id) }}</p>
       <p id="partner-location">
         <span v-if="info.city">{{ info.city }}, </span>{{ countryLabel(partner.country_id) }}
@@ -203,6 +205,7 @@ const website = computed(() => {
       <button class="lightbox-control" v-if="photos.length > 1" @click.stop="slide('right')">›</button>
     </div>
   </div>
+  <NotFoundView v-else />
 </template>
 
 <style scoped>

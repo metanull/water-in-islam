@@ -1,14 +1,14 @@
 <script setup>
-import { computed, ref, watch, onMounted, nextTick } from 'vue'
-import { useRoute, useRouter, RouterLink } from 'vue-router'
+import { computed, ref, watch, onMounted } from 'vue'
+import { useRoute, RouterLink } from 'vue-router'
 import {
-  itemFromUidPath, itemRoute, itemLabel, partnerLabel, countryLabel, partnerById,
+  itemRoute, itemLabel, partnerLabel, countryLabel, partnerById,
   partnerRoute, dynastyById, tr, loadTranslations, translations, defaultLang,
   languageByCode, md, mdInline, mdStrip, itemById,
   projectName as projectNameOf, projectFamily, isHiddenPartner,
 } from '../composables/useExhibitionData.js'
-import { isRtl, useI18n } from '@metanull/viewer-core'
-import { termsForItem, linkGlossary, searchGlossary } from '../composables/useGlossary.js'
+import { NotFoundView, useI18n, useRecordLanguage, useSiteConfig } from '@metanull/viewer-core'
+import { termsForItem, glossaryFor, searchGlossary } from '../composables/useGlossary.js'
 import { findEvents, eraLabel, roundOutward, timelineCountries, countryIdForCode, hasTimeline } from '../composables/useTimeline.js'
 import BackLink from '../components/BackLink.vue'
 
@@ -16,23 +16,17 @@ const { t } = useI18n()
 const era = (year) => eraLabel(year, t)
 
 const route = useRoute()
-const router = useRouter()
+const { links } = useSiteConfig()
 
-const PORTAL = 'https://www.museumwnf.org'
-const ISLAMIC_ART = 'https://islamicart.museumwnf.org'
-const BAROQUE_ART = 'https://baroqueart.museumwnf.org'
-const SHARING_HISTORY = 'https://sharinghistory.museumwnf.org'
-
-
-const item = computed(() => itemFromUidPath(route.params.uid))
-const lang = computed(() => route.params.language ?? defaultLang)
-const rtl = computed(() => isRtl(lang.value))
+const item = computed(() => itemById.value.get(route.params.id) ?? null)
 const ready = ref(false)
 
-// The sheet's language list is the *record's*, not the site's: a borrowed item
-// may carry de/el/tr that the gallery UI never offers, and may be missing one
-// of the gallery's four. Legacy built the same list from `i18nLinks`.
-const recordLanguages = computed(() => item.value?.languages ?? [defaultLang])
+// The record's language, not the site's: a borrowed item may carry languages
+// this exhibition never offers, and may be missing one it does. It follows
+// the site language where the record has it, English where it does not, and
+// the visitor may toggle it here — a choice that stays on this sheet and
+// never touches the site language or the URL.
+const { language: lang, languages: recordLanguages, dir, select } = useRecordLanguage(item)
 
 function languageName(code) {
   return languageByCode.value.get(code)?.names?.[code] ?? code.toUpperCase()
@@ -63,7 +57,7 @@ async function resolveAttribution() {
 
 async function load() {
   ready.value = false
-  if (!item.value) { router.replace({ name: 'error' }); return }
+  if (!item.value) { ready.value = true; return }
   await Promise.all([
     loadTranslations('items', lang.value),
     loadTranslations('glossary', lang.value),
@@ -72,12 +66,10 @@ async function load() {
   ])
   await resolveAttribution()
   ready.value = true
-  await nextTick()
-  bindGlossaryLinks()
 }
 
 onMounted(load)
-watch(() => [route.params.uid, route.params.language].join('|'), load)
+watch(() => [route.params.id, lang.value].join('|'), load)
 
 const sheet = computed(() => (item.value ? tr('items', item.value.id, lang.value) : {}))
 const partner = computed(() => (item.value ? partnerById.value.get(item.value.partner_id) : null))
@@ -85,14 +77,11 @@ const partner = computed(() => (item.value ? partnerById.value.get(item.value.pa
 // ── Glossary ───────────────────────────────────────────────────────────────
 
 const terms = computed(() => (item.value ? termsForItem(item.value, lang.value) : []))
+const glossary = computed(() => glossaryFor(terms.value))
 const openTerm = ref(null)
 
-const description = computed(() =>
-  linkGlossary(md(sheet.value.description), terms.value, lang.value)
-)
-const shortDescription = computed(() =>
-  linkGlossary(md(sheet.value.short_description), terms.value, lang.value)
-)
+const description = computed(() => md(sheet.value.description, { glossary: glossary.value }))
+const shortDescription = computed(() => md(sheet.value.short_description, { glossary: glossary.value }))
 
 // Legacy shows both descriptions when both exist, with the short one collapsed
 // behind a toggle; when only one exists it is relabelled plain "Description:".
@@ -104,16 +93,15 @@ const bothDescriptions = computed(() =>
 const showShort = ref(false)
 watch(bothDescriptions, both => { showShort.value = !both }, { immediate: true })
 
-function bindGlossaryLinks() {
-  for (const el of document.querySelectorAll('.glossary-link')) {
-    el.onclick = (event) => {
-      event.preventDefault()
-      openTerm.value = terms.value.find(t => t.id === el.dataset.term) ?? null
-      closeOthers('glossary-word')
-    }
-  }
+// One listener on the sheet, for every highlighted term it renders: the
+// spans are produced by the renderer, so nothing binds to them one by one.
+function onGlossaryClick(event) {
+  const el = event.target.closest('.gloss-term')
+  if (!el) return
+  event.preventDefault()
+  openTerm.value = terms.value.find(t => t.id === el.dataset.gid) ?? null
+  closeOthers()
 }
-watch([description, shortDescription, showShort], () => nextTick(bindGlossaryLinks))
 
 // ── Field list ─────────────────────────────────────────────────────────────
 //
@@ -164,19 +152,19 @@ const fields = computed(() => {
   const rows = [
     ['name', t('exhibition.sheet.name'), mdInline(s.name)],
     ['aka', t('exhibition.sheet.alsoKnownAs'), mdInline(s.alternate_name)],
-    ['location', t('exhibition.sheet.location'), [s.location, countryLabel(it.country_id)].filter(Boolean).join(', ')],
+    ['location', t('exhibition.sheet.location'), mdInline([s.location, countryLabel(it.country_id)].filter(Boolean).join(', '))],
     ['museum', t('exhibition.sheet.holdingMuseum'), null],           // rendered as a profile link
     ['originalOwner', t('exhibition.sheet.originalOwner'), mdInline(s.initial_owner)],
     ['currentOwner', t('exhibition.sheet.currentOwner'), mdInline(s.owner)],
     ['date', t('exhibition.sheet.date'), mdInline(s.dates)],
-    ['artist', t('exhibition.sheet.artists'), (it.artist_names ?? []).join(', ')],
+    ['artist', t('exhibition.sheet.artists'), mdInline((it.artist_names ?? []).join(', '))],
     ['scribe', t('exhibition.sheet.scribe'), mdInline(s.scriber)],
     ['workshop', t('exhibition.sheet.workshop'), mdInline(s.workshop)],
     ['type', t('exhibition.sheet.type'), mdInline(s.type)],
-    ['inventoryNumber', t('exhibition.sheet.inventoryNumber'), it.owner_reference],
-    ['materials', t('exhibition.sheet.materials'), (s.materials ?? []).join('; ')],
+    ['inventoryNumber', t('exhibition.sheet.inventoryNumber'), mdInline(it.owner_reference)],
+    ['materials', t('exhibition.sheet.materials'), mdInline((s.materials ?? []).join('; '))],
     ['dimensions', t('exhibition.sheet.dimensions'), mdInline(s.dimensions)],
-    ['dynasty', t('exhibition.sheet.periodDynasty'), dynastyNames],
+    ['dynasty', t('exhibition.sheet.periodDynasty'), mdInline(dynastyNames)],
     ['production', t('exhibition.sheet.placeOfProduction'), mdInline(s.place_of_production)],
     ['provenance', t('exhibition.sheet.provenance'), mdInline(s.provenance)],
     ['binding', t('exhibition.sheet.binding'), mdInline(s.binding_desc)],
@@ -322,11 +310,6 @@ function justification(r) {
 const showEiacNotice = computed(() => item.value?.project_key === 'EPM')
 const languageNameList = computed(() => recordLanguages.value.map(languageName).join(', '))
 
-function setLanguage(code) {
-  if (code === lang.value) return
-  router.push(itemRoute(item.value, code))
-}
-
 // Legacy's "As PDF (including images)" was the browser's own print dialog.
 function printSheet() {
   window.print()
@@ -341,7 +324,7 @@ function printSheet() {
         :key="code"
         class="languages-button"
         :class="{ 'language-selected': code === lang }"
-        @click="setLanguage(code)"
+        @click="select(code)"
       >{{ languageName(code) }}</button>
     </div>
 
@@ -349,7 +332,7 @@ function printSheet() {
 
     <div v-if="!ready" class="loader">{{ $t('core.status.loading') }}</div>
 
-    <div v-else id="database-object-wrapper" :dir="rtl ? 'rtl' : 'ltr'">
+    <div v-else id="database-object-wrapper" :dir="dir">
       <div id="photo-info-wrapper">
         <!-- Photos -->
         <div id="photo-container">
@@ -388,7 +371,7 @@ function printSheet() {
             </p>
             <p id="source-uid"><code>{{ item.backward_compatibility }}</code></p>
             <p id="add-collection-link">
-              <a :href="`${PORTAL}/mycollection/index.php`" target="_blank" rel="noopener">
+              <a :href="links.myCollection" target="_blank" rel="noopener">
                 ↗ {{ t('exhibition.item.addToCollection') }}
               </a>
             </p>
@@ -396,7 +379,7 @@ function printSheet() {
         </div>
 
         <!-- Sheet -->
-        <div id="info-container">
+        <div id="info-container" @click="onGlossaryClick">
           <div id="info-eiac" v-if="showEiacNotice">
             {{ t('exhibition.item.explorePartnerNote') }} <strong><em>{{ languageNameList }}</em></strong>
           </div>
@@ -413,7 +396,7 @@ function printSheet() {
                  holder from an item sheet at all — this link is the viewer's
                  own addition, inherited from the gallery fork. -->
             <p class="info info-link" v-if="key === 'museum'">
-              <RouterLink v-if="!isHiddenPartner(partner)" :to="partnerRoute(partner, lang)">{{ partnerLabel(item.partner_id) }}</RouterLink>
+              <RouterLink v-if="!isHiddenPartner(partner)" :to="partnerRoute(partner)">{{ partnerLabel(item.partner_id) }}</RouterLink>
               <span v-else>{{ partnerLabel(item.partner_id) }}</span>
             </p>
             <p class="info" v-else-if="key === 'catalogue'">
@@ -466,7 +449,7 @@ function printSheet() {
               v-for="r in relatedInPackage"
               :key="r.id"
               class="related-objects"
-              :to="itemRoute(r.item, lang)"
+              :to="itemRoute(r.item)"
             >
               <img v-if="r.item.images?.length" :src="r.item.images[0].url" :alt="itemLabel(r.item)" />
               <div v-else class="related-thumb-empty"></div>
@@ -495,7 +478,7 @@ function printSheet() {
              from ISL/EPM sheets. -->
         <div v-if="item.project_key === 'ISL' || item.project_key === 'EPM'">
           <p class="related-line">
-            <a :href="`${ISLAMIC_ART}/gai/ISL/`" target="_blank" rel="noopener">↗ {{ t('exhibition.nav.artisticIntroduction') }}</a>
+            <a :href="`${links.islamicArt}/gai/ISL/`" target="_blank" rel="noopener">↗ {{ t('exhibition.nav.artisticIntroduction') }}</a>
           </p>
         </div>
 
@@ -614,13 +597,13 @@ function printSheet() {
         <div v-if="hasRelatedDatabase">
           <p class="related-header">{{ t('exhibition.search.relatedDatabase') }}</p>
           <p class="related-line" v-if="item.project_key === 'ISL' || item.project_key === 'EPM'">
-            <a :href="`${ISLAMIC_ART}/database.php`" target="_blank" rel="noopener">↗ {{ $t('exhibition.project.islamicArt') }}</a>
+            <a :href="`${links.islamicArt}/database.php`" target="_blank" rel="noopener">↗ {{ $t('exhibition.project.islamicArt') }}</a>
           </p>
           <p class="related-line" v-if="item.project_key === 'DBA' || item.project_key === 'BAR'">
-            <a :href="`${BAROQUE_ART}/database.php`" target="_blank" rel="noopener">↗ {{ $t('exhibition.project.baroqueArt') }}</a>
+            <a :href="`${links.baroqueArt}/database.php`" target="_blank" rel="noopener">↗ {{ $t('exhibition.project.baroqueArt') }}</a>
           </p>
           <p class="related-line" v-if="item.project_key === 'AWE' || item.project_key === 'awe'">
-            <a :href="`${SHARING_HISTORY}/database.php`" target="_blank" rel="noopener">↗ {{ $t('exhibition.project.sharingHistory') }}</a>
+            <a :href="`${links.sharingHistory}/database.php`" target="_blank" rel="noopener">↗ {{ $t('exhibition.project.sharingHistory') }}</a>
           </p>
         </div>
 
@@ -629,7 +612,7 @@ function printSheet() {
         <div>
           <p class="related-header">{{ t('exhibition.search.overallDatabase') }}</p>
           <p class="related-line">
-            <a :href="`${PORTAL}/database_searchform.php`" target="_blank" rel="noopener">↗ {{ t('exhibition.nav.overallDatabase') }}</a>
+            <a :href="links.overallDatabase" target="_blank" rel="noopener">↗ {{ t('exhibition.nav.overallDatabase') }}</a>
           </p>
         </div>
 
@@ -641,7 +624,7 @@ function printSheet() {
     </div>
 
     <!-- Glossary word popup -->
-    <div class="glossary-popup" v-if="openTerm" :dir="rtl ? 'rtl' : 'ltr'">
+    <div class="glossary-popup" v-if="openTerm" :dir="dir">
       <div class="popout-close" @click="openTerm = null">✕</div>
       <div class="popout-title">{{ t('exhibition.nav.glossary') }}</div>
       <div class="popout-scroll">
@@ -657,6 +640,7 @@ function printSheet() {
       <button class="lightbox-control right" v-if="photos.length > 1" @click.stop="slide('right')">›</button>
     </div>
   </div>
+  <NotFoundView v-else />
 </template>
 
 <style scoped>
@@ -716,7 +700,7 @@ function printSheet() {
 .info { line-height: 1.5; }
 .info :deep(p) { margin-bottom: 8px; }
 .info :deep(em) { font-style: italic; }
-.info :deep(.glossary-link) { color: var(--theme-medium-dark); text-decoration: underline dotted; cursor: pointer; }
+.info :deep(.gloss-term) { color: var(--theme-medium-dark); text-decoration: underline dotted; cursor: pointer; }
 .info-link a { color: var(--link-blue); }
 
 #citation-block { margin-top: 22px; padding-top: 12px; border-top: 1px solid var(--theme-light); font-size: 14px; }

@@ -122,11 +122,10 @@ const galleryItems = computed(() => {
           ➤
           <RouterLink :to="{
             name: 'timeline-gallery',
-            params: {
+            query: {
               country: String(route.query.c ?? 'all'),
-              start: route.query.start || 'any',
-              end: route.query.end || 'any',
-              page: 1,
+              start: route.query.start || undefined,
+              end: route.query.end || undefined,
             },
           }">{{ $t('exhibition.action.seeGallery') }} ({{ galleryItems.length }})</RouterLink>
         </p>

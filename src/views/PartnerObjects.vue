@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import { useRoute, useRouter, RouterLink } from 'vue-router'
 import {
-  items, partnerFromKey, partnerRoute, partnerLabel, countryLabel, tr, defaultLang,
+  items, visiblePartnerById, partnerRoute, partnerLabel, countryLabel, tr, defaultLang,
 } from '../composables/useExhibitionData.js'
 import { sortChronological, paginate } from '../composables/useCollection.js'
 import ObjectGrid from '../components/ObjectGrid.vue'
@@ -24,18 +24,19 @@ const isInstitutionView = computed(() => props.variant === 'institution')
 const route = useRoute()
 const router = useRouter()
 
-const partner = computed(() => partnerFromKey(route.params.country, route.params.id))
+const partner = computed(() => visiblePartnerById(route.params.id))
 const held = computed(() => {
   const p = partner.value
   if (!p) return []
   return sortChronological(items.value.filter(i => i.partner_id === p.id))
 })
-const page = computed(() => paginate(held.value, route.params.page ?? 1))
+const page = computed(() => paginate(held.value, route.query.page ?? 1))
 
 function navigate(p) {
   router.push({
     name: isInstitutionView.value ? 'institution-monuments' : 'partner-objects',
-    params: { ...route.params, page: p },
+    params: route.params,
+    query: { ...route.query, page: p },
   })
 }
 
