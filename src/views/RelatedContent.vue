@@ -1,7 +1,7 @@
 <script setup>
 import { computed } from 'vue'
 import {
-  relatedContent, legacyImage, countryLabelFromCode, mdInline, md,
+  relatedContent, chromeImage, countryLabelFromCode, mdInline, md,
 } from '../composables/useExhibitionData.js'
 import { useI18n } from '@metanull/viewer-core'
 import BackLink from '../components/BackLink.vue'
@@ -34,7 +34,7 @@ function text(map) {
 }
 
 function href(entry) {
-  if (entry.document_path) return legacyImage(entry.document_path, 'hi_res')
+  if (entry.document_path) return chromeImage(entry.document_path, 'hi_res')
   return entry.url ?? null
 }
 
@@ -83,7 +83,7 @@ const groups = computed(() => {
                the way in, so this goes through md() rather than v-html raw. -->
           <div class="further-reading prose" v-if="text(entry.texts)" v-html="md(text(entry.texts))"></div>
 
-          <div class="further-reading prose" v-if="entry.further_reading" v-html="entry.further_reading"></div>
+          <div class="further-reading prose" v-if="entry.further_reading" v-html="md(entry.further_reading)"></div>
 
           <div v-if="entry.entity_location || entry.entity_country">
             <span v-if="entry.entity_location">{{ entry.entity_location }}</span>

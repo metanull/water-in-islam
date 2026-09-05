@@ -1,44 +1,38 @@
-import { ref, computed } from 'vue'
-import { marked } from 'marked'
-import { renderBlock, renderInline, useDataPackage } from '@metanull/viewer-core'
+import { computed } from 'vue'
+import {
+  byId, entityRef, mediaUrl, renderBlock, renderInline, renderPlain, useDataPackage,
+} from '@metanull/viewer-core'
 
-import manifestData from '@inventory-data/manifest.json'
-import exhibitionData from '@inventory-data/exhibition.json'
-import themesData from '@inventory-data/themes.json'
-import relatedContentData from '@inventory-data/related_content.json'
-import itemsData from '@inventory-data/items.json'
-import tagsData from '@inventory-data/tags.json'
-import partnersData from '@inventory-data/partners.json'
-import countriesData from '@inventory-data/countries.json'
-import languagesData from '@inventory-data/languages.json'
-import dynastiesData from '@inventory-data/dynasties.json'
-import glossaryData from '@inventory-data/glossary.json'
-import timelinesData from '@inventory-data/timelines.json'
-import timelineEventsData from '@inventory-data/timeline_events.json'
+// The exhibition's records, read the one way every website reads them:
+// through viewer-core, lazily. Each entity is a shared ref that stays `null`
+// until a route declaring it in `meta.entities` brings its chunk in, so
+// importing this module loads nothing, and a page pays only for what it
+// reads. Nothing here keeps a copy of a record or a translation.
 
-// ── Static entity data ─────────────────────────────────────────────────────
+const dataPackage = useDataPackage()
+export const manifest = dataPackage.manifest
+
+// ── Records ────────────────────────────────────────────────────────────────
 // Language-independent; every human-readable string lives under translations/.
 
-export const manifest = manifestData
-export const exhibition = exhibitionData
+export const exhibition = entityRef('exhibition')
+export const themeTree = entityRef('themes')
+export const relatedContent = entityRef('related_content')
+export const allItems = entityRef('items')
+export const tags = entityRef('tags')
+export const partners = entityRef('partners')
+export const countries = entityRef('countries')
+export const languages = entityRef('languages')
+export const dynasties = entityRef('dynasties')
+export const glossary = entityRef('glossary')
+export const timelines = entityRef('timelines')
+export const timelineEvents = entityRef('timeline_events')
 
-// `languages` is the UI roster (thg_gallery_lang); `languages_enabled` is what
-// `exhibition_i18n.enabled` actually publishes. They agree here — English alone
-// on both — and they do not have to: on Colours German has full theme
-// translations and a live instance answering `exhibitionTitle: null`, which is
-// why the package carries both fields rather than deriving one from the other.
-// Per decision Q2 the sites are per-language builds, so the *enabled* list is
-// what a build may offer.
-//
-// This block sits above the entity data because the member list is filtered by
-// it.
-export const siteLanguages = exhibition.languages_enabled?.length
-  ? exhibition.languages_enabled
-  : (exhibition.languages ?? ['en'])
-export const defaultLang = siteLanguages.includes('en') ? 'en' : siteLanguages[0]
+// English is the base language of every catalogue in the platform: every
+// list, label and fallback reads it. A record the visitor reads in another
+// language is resolved on the sheet itself, by `useRecordLanguage`.
+export const defaultLang = 'en'
 
-export const themeTree = ref(themesData)
-export const relatedContent = ref(relatedContentData)
 // A per-language build does not list a record it cannot render. The package
 // ships every member with its `languages` array intact and leaves the decision
 // here, because the decision belongs to the build rather than to the export.
@@ -55,44 +49,33 @@ export const relatedContent = ref(relatedContentData)
 // `internal_name` fallback and lose only their descriptions. Hence the
 // `!i.languages?.length ||` guard, which reads like a redundant null-check and
 // is not.
-const renderable = itemsData.filter(
-  i => !i.languages?.length || i.languages.includes(defaultLang)
+export const items = computed(() =>
+  (allItems.value ?? []).filter(i => !i.languages?.length || i.languages.includes(defaultLang))
 )
 
-export const items = ref(renderable)
-export const tags = ref(tagsData)
-export const partners = ref(partnersData)
-export const countries = ref(countriesData)
-export const languages = ref(languagesData)
-export const dynasties = ref(dynastiesData)
-export const glossary = ref(glossaryData)
-export const timelines = ref(timelinesData)
-export const timelineEvents = ref(timelineEventsData)
-
-// Legacy media server for the exhibition chrome images and the related-content
-// PDFs only. `banner_image_path`, `homepage_image_path` and `document_path`
-// were never imported into inventory storage, so the package ships the legacy
-// path and the viewer supplies the host — the one exception to the
-// absolute-image-URL convention.
-const LEGACY_IMAGES =
-  import.meta.env.VITE_LEGACY_IMAGES_URL ?? 'https://images.museumwnf.org'
-
-/** Legacy media URL. `size` ∈ zoom | hi_res | lo_res | small | full. */
-export function legacyImage(path, size = 'hi_res') {
-  if (!path) return null
-  return `${LEGACY_IMAGES}/${size}/${path}`
+/**
+ * Exhibition chrome images and the related-content PDFs.
+ * `banner_image_path`, `homepage_image_path` and `document_path` were never
+ * imported into inventory storage, so the package ships the legacy path and
+ * the address is built from the host `dataset.config.js` declares under
+ * `media`. `size` ∈ zoom | hi_res | lo_res | small | full.
+ */
+export function chromeImage(path, size = 'hi_res') {
+  return mediaUrl(path, size)
 }
 
 // ── Lookup maps ────────────────────────────────────────────────────────────
 
+// `items` is this build's renderable subset rather than the whole entity, so
+// its map is derived here; every other map is viewer-core's shared index.
 export const itemById = computed(() => new Map(items.value.map(i => [i.id, i])))
-export const partnerById = computed(() => new Map(partners.value.map(p => [p.id, p])))
-export const countryById = computed(() => new Map(countries.value.map(c => [c.id, c])))
-export const tagById = computed(() => new Map(tags.value.map(t => [t.id, t])))
-export const dynastyById = computed(() => new Map(dynasties.value.map(d => [d.id, d])))
-export const glossaryById = computed(() => new Map(glossary.value.map(g => [g.id, g])))
-export const timelineById = computed(() => new Map(timelines.value.map(t => [t.id, t])))
-export const languageByCode = computed(() => new Map(languages.value.map(l => [l.code, l])))
+export const partnerById = byId('partners')
+export const countryById = byId('countries')
+export const tagById = byId('tags')
+export const dynastyById = byId('dynasties')
+export const glossaryById = byId('glossary')
+export const timelineById = byId('timelines')
+export const languageByCode = byId('languages', 'code')
 
 // countries.json is keyed by the inventory id (ISO 3166-1 alpha-3), but the
 // legacy two-letter code is what related_content and the timeline keyspaces
@@ -100,7 +83,7 @@ export const languageByCode = computed(() => new Map(languages.value.map(l => [l
 // bridge between the two — and the reason it is a lookup rather than a parse
 // is that several legacy codes are not ISO (`uk`, `pa`, `qt`, `ua`, `sb`).
 export const countryByCode = computed(
-  () => new Map(countries.value.filter(c => c.code).map(c => [c.code, c]))
+  () => new Map((countries.value ?? []).filter(c => c.code).map(c => [c.code, c]))
 )
 
 // Legacy dbUid ⇄ item. The public item URL keeps the dbUid path, which is
@@ -115,14 +98,9 @@ export const itemByUid = computed(() => {
   return m
 })
 
-/** `mwnf3:objects:EPM:uk:Mus21:41` → `mwnf3/objects/EPM/uk/Mus21/41` */
-export function itemUidPath(item) {
-  return (item?.backward_compatibility ?? '').split(':').join('/')
-}
-
-/** The legacy item-sheet route for an item in a given language. */
-export function itemRoute(item, lang = defaultLang) {
-  return `/database-item/${itemUidPath(item)}/${lang}`
+/** The canonical item route: the package id, and no language in the path. */
+export function itemRoute(item) {
+  return { name: 'item', params: { id: item.id } }
 }
 
 export function itemFromUidPath(path) {
@@ -156,16 +134,19 @@ export function isInstitution(partner) {
   return partner?.type === 'institution'
 }
 
-export function partnerRoute(partner, lang = defaultLang) {
-  const { legacyId, countryCode } = partnerKey(partner)
-  const base = isInstitution(partner) ? 'institution' : 'partner'
-  return `/${base}/${countryCode}/${legacyId}/${lang}`
+export function partnerRoute(partner) {
+  return {
+    name: isInstitution(partner) ? 'institution' : 'partner',
+    params: { id: partner.id },
+  }
 }
 
 export function partnerObjectsRoute(partner, page = 1) {
-  const { legacyId, countryCode } = partnerKey(partner)
-  const base = isInstitution(partner) ? 'institution-monuments' : 'partner-objects'
-  return `/${base}/${countryCode}/${legacyId}/${page}`
+  return {
+    name: isInstitution(partner) ? 'institution-monuments' : 'partner-objects',
+    params: { id: partner.id },
+    query: page > 1 ? { page } : {},
+  }
 }
 
 /**
@@ -174,11 +155,17 @@ export function partnerObjectsRoute(partner, page = 1) {
  * legacy's endpoints simply do not serve them.
  */
 export function partnerFromKey(countryCode, legacyId) {
-  return partners.value.find(p => {
-    if (hiddenPartners.has(p.id)) return false
+  return (partners.value ?? []).find(p => {
+    if (isHiddenPartner(p)) return false
     const k = partnerKey(p)
     return k.legacyId === legacyId && k.countryCode === countryCode
   }) ?? null
+}
+
+/** The same rule for a partner reached by its package id, from a canonical route. */
+export function visiblePartnerById(id) {
+  const partner = partnerById.value.get(id) ?? null
+  return partner && !isHiddenPartner(partner) ? partner : null
 }
 
 // E6: a hidden museum is exported but must not appear on any list or profile
@@ -195,14 +182,14 @@ export function partnerFromKey(countryCode, legacyId) {
 //   * `ItemSheet` — the holder line, which prints the museum's name but drops
 //     the link this viewer adds. Legacy links no holder from an item sheet at
 //     all, hidden or not, so suppressing it is also the closer copy.
-const hiddenPartners = new Set(exhibition.hidden_partner_ids ?? [])
+const hiddenPartners = computed(() => new Set(exhibition.value?.hidden_partner_ids ?? []))
 export function isHiddenPartner(partner) {
-  return hiddenPartners.has(partner?.id)
+  return hiddenPartners.value.has(partner?.id)
 }
 
 /** Every partner the site may list: museums and institutions, minus the hidden. */
 export const visiblePartners = computed(() =>
-  partners.value.filter(p => !hiddenPartners.has(p.id))
+  (partners.value ?? []).filter(p => !hiddenPartners.value.has(p.id))
 )
 
 // ── Themes ─────────────────────────────────────────────────────────────────
@@ -219,7 +206,7 @@ export const visiblePartners = computed(() =>
 //     `display_order - 1`, exactly as legacy's `theme.display - 1` did, so a
 //     legacy URL pasted after the `#` lands on the same theme.
 
-export const themes = computed(() => themeTree.value)
+export const themes = computed(() => themeTree.value ?? [])
 
 /** The About theme — display order 1, rendered at /about, absent from /themes. */
 export const aboutTheme = computed(
@@ -289,7 +276,6 @@ export function themePictures(theme) {
 // Delegates to viewer-core's useDataPackage() — the shared, glob-based
 // loader — rather than a local copy of the same glob/cache.
 
-const dataPackage = useDataPackage()
 export const availableLanguages = dataPackage.availableLanguages
 export const loadTranslations = dataPackage.loadTranslations
 export const translations = dataPackage.translations
@@ -379,7 +365,7 @@ const PROJECT_FAMILIES = {
 // deployment's (`GalEx6`) and its name is the exhibition's own title — legacy
 // answers "Water in Islam" for a native member and colours it with the shared
 // EXH purple, the same swatch it gives The Table Is Set.
-const NATIVE_PROJECT_KEY = exhibition.mwnf3_project_id
+const nativeProjectKey = computed(() => exhibition.value?.mwnf3_project_id ?? null)
 
 // Some members have no `project_key` at all: they come from the Explore
 // monuments database rather than from a project, which is why provenance has
@@ -397,7 +383,7 @@ function isExploreRecord(item) {
 export function projectName(item) {
   const key = item?.project_key
   if (!key) return ''
-  if (key === NATIVE_PROJECT_KEY) return exhibitionTitle(defaultLang)
+  if (key === nativeProjectKey.value) return exhibitionTitle(defaultLang)
   return PROJECT_NAMES[key] ?? key
 }
 
@@ -405,7 +391,7 @@ export function projectName(item) {
 export function projectFamily(item) {
   const key = item?.project_key
   if (!key) return isExploreRecord(item) ? 'Explore' : ''
-  if (key === NATIVE_PROJECT_KEY) return 'EXH'
+  if (key === nativeProjectKey.value) return 'EXH'
   return PROJECT_FAMILIES[key] ?? key
 }
 
@@ -441,19 +427,19 @@ export function dynastyLabel(dynastyId) {
 
 /** The exhibition's own per-language chrome text. */
 export function exhibitionTitle(lang = defaultLang) {
-  return exhibition.titles?.[lang] ?? exhibition.titles?.en ?? ''
+  return exhibition.value?.titles?.[lang] ?? exhibition.value?.titles?.en ?? ''
 }
 
 export function exhibitionSubtitle(lang = defaultLang) {
-  return exhibition.subtitles?.[lang] ?? exhibition.subtitles?.en ?? ''
+  return exhibition.value?.subtitles?.[lang] ?? exhibition.value?.subtitles?.en ?? ''
 }
 
 export function exhibitionHeadline(lang = defaultLang) {
-  return exhibition.headlines?.[lang] ?? exhibition.headlines?.en ?? ''
+  return exhibition.value?.headlines?.[lang] ?? exhibition.value?.headlines?.en ?? ''
 }
 
 export function bannerCaption(lang = defaultLang) {
-  return exhibition.banner_captions?.[lang] ?? exhibition.banner_captions?.en ?? ''
+  return exhibition.value?.banner_captions?.[lang] ?? exhibition.value?.banner_captions?.en ?? ''
 }
 
 // ── Sibling sites ──────────────────────────────────────────────────────────
@@ -464,7 +450,7 @@ export function bannerCaption(lang = defaultLang) {
 // just does not become an anchor.
 
 export const siblingSites = computed(() =>
-  (exhibition.sibling_sites ?? []).filter(s => !s.hidden)
+  (exhibition.value?.sibling_sites ?? []).filter(s => !s.hidden)
 )
 
 export function siblingUrl(sibling) {
@@ -472,76 +458,33 @@ export function siblingUrl(sibling) {
 }
 
 // ── Markdown ───────────────────────────────────────────────────────────────
-
-// Rendered by viewer-core, which escapes raw HTML instead of rendering it.
-// A data package holds Markdown — the importer converts the legacy HTML on
-// the way in — so a tag arriving in a field means that conversion missed it,
-// and it shows on the page as the characters it is. The fix belongs in the
-// importer; rendering it here would hide the one thing worth seeing, and it
-// would make a museum record the single input this site trusts with markup.
 //
-// mdStrip stays on marked: it lexes, it renders nothing, and it already
-// discards raw HTML nodes rather than passing them on.
-export function md(text) {
+// The three renderers of viewer-core, and nothing else: a data package holds
+// Markdown, every website renders it through the same pipeline, and a field
+// that renders wrongly is fixed in the importer, where the data is made. The
+// links a curator wrote into the exhibition's own texts by its legacy address
+// are hash routes in the package now, rewritten on the way in, so nothing
+// here rewrites a text either.
+//
+// `md` renders a record's text with its line breaks, and takes the glossary
+// the sheet passes to highlight the terms it carries.
+
+export function md(text, { glossary } = {}) {
   if (!text) return ''
-  return renderBlock(text, { breaks: true })
+  return renderBlock(text, { breaks: true, glossary })
 }
 
-export function mdInline(text) {
+export function mdInline(text, { glossary } = {}) {
   if (!text) return ''
-  return renderInline(text)
+  return renderInline(text, { glossary })
 }
 
 /**
- * Rewrite this exhibition's own absolute legacy URLs to in-app hash routes.
- *
- * The curated catalogue keys (`txtCollection`, `txtPartners`, `txtTimeline`)
- * link to the exhibition's own sections by their full legacy address —
- * `https://exhibitions.museumwnf.org/water_in_islam/en/themes`. Left alone
- * those send a visitor off this build and onto the site it replaces. Only links
- * whose host and slug match this exhibition are touched; every other link,
- * including the ones into museumwnf.org, is left exactly as the curator wrote
- * it.
- *
- * The input is rendered HTML, not markdown — `tHtml()` runs `md()` first — so
- * the addresses arrive as `href` values and the second pass is about what the
- * curator left inside one.
- *
- * This exhibition's curator wrote the destinations as
- * `[Themes](< https://…/themes>)`: a pointy-bracket destination with a space
- * inside it, where the Colours curator wrote bare URLs. CommonMark keeps that
- * space and `marked` percent-encodes it, so the href arrives here as
- * `%20https://…/themes` and the first replace turns it into `%20#/themes` — a
- * route with an encoded space in front of the hash, which resolves to nothing.
- * The live instance has the same space and gets away with it because a browser
- * trims leading whitespace from an http URL; it will not trim it from a
- * fragment. The second replace removes it, and only where the destination is
- * one this function has just rewritten.
+ * A text as plain text, for an `alt`, an option label or a search index.
  */
-export function localiseLinks(html) {
-  if (!html) return ''
-  const host = (exhibition.legacy_host ?? '').replace(/\/$/, '')
-  const slug = exhibition.slug
-  if (!host || !slug) return html
-  const prefix = `${host}/${slug}/`
-  return html
-    .replace(
-      new RegExp(`${prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[a-z-]+/?([^"'\\s>]*)`, 'gi'),
-      (_match, path) => `#/${path ?? ''}`
-    )
-    .replace(/((?:href|src)=["'])(?:\s|%20)+(?=#\/)/gi, '$1')
-}
-
 export function mdStrip(text) {
   if (!text) return ''
-  const walk = (tokens) => tokens.map(t => {
-    if (t.tokens?.length) return walk(t.tokens)
-    if (t.type === 'image') return t.text ?? ''
-    if (t.type === 'html') return ''
-    if (t.type === 'br' || t.type === 'softbreak') return ' '
-    return t.text ?? ''
-  }).join('')
-  return walk(marked.Lexer.lexInline(text))
+  return renderPlain(text)
 }
 
 export function useExhibitionData() {
@@ -551,18 +494,18 @@ export function useExhibitionData() {
     themes, aboutTheme, listedThemes, allThemeNodes, themeById, themeByBc,
     themeByRouteId, themeRouteId, romanFor, themePictures,
     themeText, pictureText, relatedContent,
-    siteLanguages, defaultLang,
+    defaultLang,
     itemById, partnerById, countryById, tagById, dynastyById, glossaryById,
     timelineById, languageByCode, itemByUid,
-    itemUidPath, itemRoute, itemFromUidPath,
-    partnerKey, partnerRoute, partnerObjectsRoute, partnerFromKey,
+    itemRoute, itemFromUidPath,
+    partnerKey, partnerRoute, partnerObjectsRoute, partnerFromKey, visiblePartnerById,
     isInstitution, isHiddenPartner, visiblePartners,
-    legacyImage,
+    chromeImage,
     loadTranslations, translations, tr, availableLanguages, loadEnglish,
     itemLabel, countryLabel, countryLabelFromCode, countryByCode, partnerLabel, dynastyLabel,
     projectName, projectFamily,
     exhibitionTitle, exhibitionSubtitle, exhibitionHeadline, bannerCaption,
     siblingSites, siblingUrl,
-    md, mdInline, mdStrip, localiseLinks,
+    md, mdInline, mdStrip,
   }
 }

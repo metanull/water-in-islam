@@ -66,8 +66,7 @@ const visibleFacets = computed(() =>
 
     <!-- A shared entry, not this exhibition's own: the only thing that made the
          old `txtCollection` exhibition-specific was an absolute URL to its own
-         Themes page, which is `#/themes` now. That also retires `localiseLinks`,
-         which existed to rewrite those URLs back into in-app routes. -->
+         Themes page, which is `#/themes` now. -->
     <I18nText id="description" class="prose" dir="auto" keypath="exhibition.collection.intro" />
     <p id="how-to-search-link">
       <RouterLink to="/how-to-search">{{ $t('exhibition.search.howToLink') }}</RouterLink>

@@ -50,8 +50,9 @@ import BackLink from '../components/BackLink.vue'
 // omitted, as on the amulets and carpets forks.
 const order = ref('a-z')
 
-// `txtPartners` links back into the exhibition by absolute legacy URL; those
-// are rewritten to in-app routes. See `localiseLinks`.
+// `txtPartners` linked back into the exhibition by absolute legacy URL; the
+// importer rewrites those into hash routes on the way in, so the package's own
+// links work and nothing here rewrites a text.
 
 const grouped = computed(() => {
   const byCountry = new Map()

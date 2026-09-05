@@ -7,7 +7,7 @@ import {
   exhibitionTitle, exhibitionSubtitle,
 } from '../composables/useExhibitionData.js'
 import { pictureParent, itemDetailString } from '../composables/useThemePresentation.js'
-import { termsForText, linkGlossary } from '../composables/useGlossary.js'
+import { termsForText, glossaryFor } from '../composables/useGlossary.js'
 import { useI18n } from '@metanull/viewer-core'
 
 const { t, locale } = useI18n()
@@ -133,13 +133,13 @@ const subHeading = computed(() => {
   return t('exhibition.theme.overview')
 })
 
-// Glossary linking. Legacy asked the API which terms occur in each block and
-// rewrote the HTML in place; here the same match runs against the package's own
-// glossary — see `termsForText`.
+// Glossary highlighting. Legacy asked the API which terms occur in each block
+// and rewrote the HTML in place; here the same match runs against the
+// package's own glossary — see `termsForText` — and the renderer marks the
+// occurrences as it parses, so nothing rewrites rendered HTML.
 function withGlossary(text) {
   if (!text) return ''
-  const html = md(text)
-  return linkGlossary(html, termsForText(text, locale.value), locale.value)
+  return md(text, { glossary: glossaryFor(termsForText(text, locale.value)) })
 }
 
 const quoteHtml = computed(() => withGlossary(nodeText.value.quote))
@@ -161,10 +161,10 @@ const terms = computed(() => {
 })
 
 function onProseClick(event) {
-  const link = event.target.closest?.('a.glossary-link')
+  const link = event.target.closest?.('.gloss-term')
   if (!link) return
   event.preventDefault()
-  openTerm.value = terms.value.get(link.dataset.term) ?? null
+  openTerm.value = terms.value.get(link.dataset.gid) ?? null
 }
 
 // ── The picture being shown ────────────────────────────────────────────────
@@ -501,7 +501,7 @@ const routeId = computed(() => themeRouteId(theme.value))
 .theme-component-presentation,
 .theme-component-selected-justification { padding: 8px 0; line-height: 1.6; }
 
-:deep(a.glossary-link) {
+:deep(.gloss-term) {
   color: var(--link-blue);
   text-decoration: underline dotted;
   cursor: pointer;

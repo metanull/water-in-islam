@@ -77,4 +77,68 @@
   --mwnf-footer-background: #000000;
   --mwnf-footer-text-color: #ffffff;
   --mwnf-footer-text-size: 0.875rem;
+  --mwnf-footer-justify: center;
+  --mwnf-footer-gap: 0.5rem;
+  --mwnf-footer-link-color: #ffffff;
+
+  /* ---------- Header: mark, co-organiser logos, title cell, links, search ---------- */
+  --mwnf-header-gap: 1rem;
+  --mwnf-header-logos-title-size: 0.75rem;
+  --mwnf-header-logo-gap: 0.625rem;
+  --mwnf-header-logo-height: 2.875rem;
+  --mwnf-header-title-line-height: 1.1;
+  --mwnf-header-tools-size: 0.875rem;
+  --mwnf-header-link-color: #000000;
+  --mwnf-header-links-separator: "|";
+  --mwnf-header-control-border: 2px solid #000000;
+  --mwnf-header-control-background: #ffffff;
+  --mwnf-header-control-text: #000000;
+  --mwnf-header-button-border: 2px solid #a3d6d9;
+  --mwnf-header-button-background: #a3d6d9;
+  --mwnf-header-button-text: #000000;
+  --mwnf-header-button-active-background: #000000;
+  --mwnf-header-button-active-text: #ffffff;
+
+  /* ---------- Banner: the split home banner and the narrow section strip ---------- */
+  --mwnf-banner-media-background: #000000;
+  --mwnf-banner-fallback: linear-gradient(160deg, #000000, #a3d6d9);
+  --mwnf-banner-split-media-width: 60%;
+  --mwnf-banner-split-body-width: 40%;
+  --mwnf-banner-split-min-height: 43.75rem;
+  --mwnf-banner-split-padding: 3.125rem 1.25rem;
+  --mwnf-banner-split-gap: 1.5625rem;
+  --mwnf-banner-split-title-size: calc(0.75rem + 1.2vw);
+  --mwnf-banner-split-subtitle-size: 65%;
+  --mwnf-banner-body-background: #000000;
+  --mwnf-banner-body-text: #ffffff;
+  --mwnf-banner-body-accent: #a3d6d9;
+  --mwnf-banner-headline-width: 28.75rem;
+  --mwnf-banner-headline-size: 0.9375rem;
+  --mwnf-banner-enter-size: 1.25rem;
+  --mwnf-banner-strapline-size: 0.875rem;
+  --mwnf-banner-caption-background: #000000;
+  --mwnf-banner-caption-text: #ffffff;
+  --mwnf-banner-caption-width: 35%;
+  --mwnf-banner-overlay-text: #000000;
+  --mwnf-banner-overlay-background: rgba(163, 214, 217, 0.6);
+  --mwnf-banner-section-height: 20vh;
+  --mwnf-banner-section-max-height: 150px;
+  --mwnf-banner-section-title-size: clamp(1.25rem, 3vw, 2.375rem);
+
+  /* ---------- Navigation: the menu button ---------- */
+  --mwnf-nav-toggle-background: #a3d6d9;
+  --mwnf-nav-toggle-color: #000000;
+
+  /* ---------- Hyperlinks: the bottom banner tiles ---------- */
+  --mwnf-hyperlinks-tiles-padding: 3.125rem;
+  --mwnf-hyperlinks-tiles-gap: 1.5625rem;
+  --mwnf-hyperlinks-tiles-text: #000000;
+  --mwnf-hyperlinks-tiles-size: 1.125rem;
+
+  /* ---------- Sponsors: the logo strip, grouped under its headings ---------- */
+  --mwnf-sponsors-groups-justify: center;
+  --mwnf-sponsors-groups-gap: 2.5rem;
+  --mwnf-sponsors-group-gap: 0.5rem;
+  --mwnf-sponsors-group-title-size: 0.75rem;
+  --mwnf-sponsors-group-title-color: #000000;
 }

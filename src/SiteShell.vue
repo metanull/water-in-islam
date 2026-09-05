@@ -1,71 +1,43 @@
 <script setup>
-// The Water in Islam page chrome, built on `PageShell` from
-// @metanull/viewer-layout.
-//
-// PageShell contributes the page skeleton (skip link, the seven ordered
-// sections, the `#mwnf-content` landmark); everything inside them is this
-// website's own, supplied through PageShell's slots. The exhibition's chrome
-// carries a search field, sponsor-logo groups and a dismissible notice that no
-// combination of PageShell props can express, which is why the slots are used
-// rather than the props.
-//
-// The section mapping is a close fit for what the exhibition already stacks:
-//
-//   header      → MWNF mark, header logos, the platform label, search
-//   banner      → the tall home banner, or the narrow per-section sub-banner
-//   navigation  → the exhibition menu
-//   content     → the active view
-//   hyperlinks  → the bottom banner (the two ways into the exhibition)
-//   sponsors    → the sponsor-logo strip
-//   footer      → the MWNF footer links
-import { computed, ref, watch } from 'vue'
+// The Water in Islam page chrome: `PageShell` from @metanull/viewer-layout,
+// filled from props. The only things this component adds are the values that
+// depend on the route or the language — which banner shows, what the section
+// is called, which logos go where — the MWNF mark in the header, and the
+// dismissible popup notice, which is this exhibition's own.
+import { computed } from 'vue'
+import { useI18n, useSiteConfig } from '@metanull/viewer-core'
 import { PageShell } from '@metanull/viewer-layout'
-import { RouterLink, useRoute, useRouter } from 'vue-router'
-import { exhibition } from './composables/useExhibitionData.js'
+import { useRoute, useRouter } from 'vue-router'
+import {
+  exhibition, chromeImage, itemById, itemLabel, partnerLabel, countryLabel, tr, defaultLang,
+  exhibitionTitle, exhibitionSubtitle, exhibitionHeadline, bannerCaption,
+} from './composables/useExhibitionData.js'
 import { hasTimeline } from './composables/useTimeline.js'
-import { useI18n } from '@metanull/viewer-core'
-import HomeBanner from './components/HomeBanner.vue'
-import SubBanner from './components/SubBanner.vue'
-import BottomBanner from './components/BottomBanner.vue'
-import LogoStrip from './components/LogoStrip.vue'
 import PopupLogo from './components/PopupLogo.vue'
 
-const { t, locale } = useI18n()
-
-// `language` and `update:language` are the shell contract of viewer-core: the
-// value it passes down is the language the application is in, and the event it
-// listens for sets it. There used to be a second language here — `uiLang`, kept
-// in step with this one by hand, because the chrome came from a vendored
-// catalogue rather than from `locales/`. Both now come from the same place, so
-// there is one language and nothing to keep in step.
-//
-// `languages` is declared only so it stops here: viewer-core passes the
-// resolved language list to every shell, and forwarding it to PageShell would
-// grow a language switcher in the navigation bar. This exhibition publishes
-// one enabled language, and per the epic's decision Q2 an exhibition ships one
-// build per enabled language rather than switching between them at runtime.
-defineProps({
+// `language`, `languages` and `update:language` are the shell contract of
+// viewer-core: the language the application is in, the languages it offers
+// (labelled, from dataset.config.js) and the event that sets it.
+const props = defineProps({
   language: { type: String, default: 'en' },
   languages: { type: Array, default: () => [] },
 })
-defineOptions({ inheritAttrs: false })
+const emit = defineEmits(['update:language'])
 
 const route = useRoute()
 const router = useRouter()
-
-const PORTAL = 'https://www.museumwnf.org'
+const { t, locale } = useI18n()
+const { links } = useSiteConfig()
 
 const isHome = computed(() => route.name === 'home')
 const currentYear = new Date().getFullYear()
 
-const searchInput = ref('')
 // `all-objects` is legacy's sentinel for an empty submission, and the value
 // SearchResults matches on. The two must agree: the monorepo viewer sent
 // `all-items` from here while matching `all-objects` there, so an empty search
 // reported no results out of the full count instead of listing everything.
-function submitSearch() {
-  router.push({ name: 'search-results', query: { q: searchInput.value || 'all-objects' } })
-  searchInput.value = ''
+function submitSearch(term) {
+  router.push({ name: 'search-results', query: { q: term || 'all-objects' } })
 }
 
 // Legacy's NavigationComponent, one for one, with the single rename
@@ -85,9 +57,36 @@ const NAV = computed(() => [
   { path: 'related', label: t('exhibition.related.title') },
   { path: 'credits', label: t('exhibition.nav.credits') },
 ])
-const navItems = computed(() => NAV.value.filter((i) => i.path !== 'timeline' || hasTimeline.value))
+const navLinks = computed(() =>
+  NAV.value
+    .filter((i) => i.path !== 'timeline' || hasTimeline.value)
+    .map((item) => ({
+      label: item.label,
+      href: `#/${item.path}`,
+      active:
+        route.path === `/${item.path}` ||
+        route.path.startsWith(`/${item.path}/`) ||
+        route.path.startsWith(`/${item.path}-`),
+    }))
+    .concat([{ label: t('exhibition.nav.myCollection'), href: links.myCollection, external: true }]),
+)
 
-const menuOpen = ref(false)
+const headerLinks = computed(() => [
+  { label: t('core.nav.home'), href: '#/' },
+  { label: t('exhibition.footer.aboutMwnf'), href: links.about, external: true },
+])
+
+const footerLinks = computed(() => [
+  { label: t('exhibition.footer.aboutMwnf'), href: links.about, external: true },
+  { label: t('exhibition.footer.contact'), href: links.contact, external: true },
+  { label: t('exhibition.footer.legalNotice'), href: links.legalNotice, external: true },
+  { label: t('exhibition.footer.credits'), href: links.credits, external: true },
+  { label: t('exhibition.footer.cookies'), href: links.cookies, external: true },
+])
+
+function logoCaption(logo) {
+  return logo.labels?.[locale.value] ?? logo.labels?.en ?? logo.alt_text ?? ''
+}
 
 // Legacy renders category 0 — "Header" — beside the MWNF mark, under the
 // `header_logo_section_1` heading, and leaves categories 1–4 to the footer
@@ -95,263 +94,136 @@ const menuOpen = ref(false)
 // under "Under the patronage of", so the header block stays empty here too;
 // the code is kept because the split is the data's, not this exhibition's.
 const headerLogos = computed(() =>
-  (exhibition.logos ?? [])
+  (exhibition.value?.logos ?? [])
     .filter((logo) => Number(logo.category_id) === 0 && logo.visible !== false)
-    .sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0)),
+    .sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0))
+    .map((logo) => ({ image: logo.image_url, alt: logoCaption(logo), href: logo.url || undefined })),
 )
 
-function logoCaption(logo) {
-  return logo.labels?.[locale.value] ?? logo.labels?.en ?? logo.alt_text ?? ''
+// Each heading is written out: a name assembled from the category id would
+// resolve at run time and be invisible to the check that every entry a page
+// asks for exists. Only the two categories that carry real copy are entries —
+// legacy's slots 3 and 4 hold placeholder text ("MIDDLE RIGHT FOOTER SECTION
+// FOR LOGOS"), which is not something to ask a translator for. Those fall back
+// to the legacy category name, exactly as an unlisted category always did.
+function headingFor(categoryId, logo) {
+  if (Number(categoryId) === 1) return t('exhibition.sponsors.patronage')
+  if (Number(categoryId) === 2) return t('exhibition.sponsors.support')
+  return logo.category ?? ''
 }
 
-// Scroll handling. `createViewerRouter` builds the router itself and takes no
-// `scrollBehavior`, so the browser keeps the previous page's scroll offset when
-// a route changes — following a result into an item sheet would land halfway
-// down it. The rule here is the exhibition's usual one: honour an anchor,
-// otherwise go back to the top, and stay put when only the parameters of the
-// current page changed (picking another picture inside a theme must not scroll
-// the page away).
-watch(
-  () => route.fullPath,
-  (to, from) => {
-    if (from && route.name && router.resolve(from).name === route.name) return
-    if (route.hash) {
-      document.querySelector(route.hash)?.scrollIntoView({ behavior: 'smooth' })
-      return
-    }
-    window.scrollTo({ top: 0 })
-  },
-)
+// The sponsor strip: legacy's LogosComponent, as sponsor groups. Its rules are
+// legacy's — category 0 is the header block above, a logo with
+// `visible: false` is dropped, and a category with nothing visible left in it
+// renders no heading either, which the layout does by dropping an empty group.
+const sponsorGroups = computed(() => {
+  const byCategory = new Map()
+  for (const logo of exhibition.value?.logos ?? []) {
+    if (logo.visible === false) continue
+    if (Number(logo.category_id) === 0) continue
+    const key = logo.category_id ?? 0
+    const bucket = byCategory.get(key)
+    if (bucket) bucket.push(logo)
+    else byCategory.set(key, [logo])
+  }
+  return [...byCategory.entries()]
+    .sort((a, b) => a[0] - b[0])
+    .map(([categoryId, logos]) => ({
+      title: headingFor(categoryId, logos[0]),
+      sponsors: [...logos]
+        .sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0))
+        .map((logo) => ({ name: logoCaption(logo), href: logo.url || undefined, logo: logo.image_url })),
+    }))
+})
+
+// The banner: the exhibition's own image, captioned with the curator's own
+// line where there is one and with the banner item's sheet where there is not.
+const bannerImage = computed(() => chromeImage(exhibition.value?.banner_image_path, 'hi_res'))
+const banner = computed(() => {
+  const curated = bannerCaption(locale.value)
+  if (curated) return curated
+  const item = itemById.value.get(exhibition.value?.banner_item_id)
+  if (!item) return ''
+  const sheet = tr('items', item.id, defaultLang)
+  return {
+    name: itemLabel(item),
+    partner: partnerLabel(item.partner_id),
+    location: sheet.location ?? '',
+    country: countryLabel(item.country_id),
+  }
+})
+
+// The section title over the narrow banner, derived from the route: data the
+// site owns, rendered by the layout.
+const sectionTitle = computed(() => {
+  const path = route.path
+  if (path.startsWith('/theme')) return t('exhibition.section.themes')
+  if (path.startsWith('/collection')) return t('exhibition.section.collection')
+  if (path.startsWith('/item') || path.startsWith('/search')) return t('exhibition.section.database')
+  if (path.startsWith('/how-to-search')) return t('exhibition.section.database')
+  if (path.startsWith('/partner') || path.startsWith('/institution')) return t('exhibition.section.partners')
+  if (path.startsWith('/related')) return t('exhibition.related.title')
+  if (path.startsWith('/timeline')) return t('exhibition.section.timeline')
+  if (path.startsWith('/about')) return t('exhibition.section.about')
+  if (path.startsWith('/credits')) return t('exhibition.section.credits')
+  return t('exhibition.section.error')
+})
+
+// Legacy's BottomBanner: the exhibition's identity on the left, and the two
+// ways into it on the right. It sits under every page, including Home.
+const bottomLinks = computed(() => [
+  { label: t('exhibition.nav.about'), description: t('exhibition.nav.introduction'), href: '#/about' },
+  { label: t('exhibition.nav.themes'), description: t('exhibition.nav.contentAtAGlance'), href: '#/themes' },
+])
 </script>
 
 <template>
-  <PageShell v-bind="$attrs">
-    <template #header>
-      <PopupLogo />
-      <div id="header-inner">
-        <div id="logo-container">
-          <a :href="`${PORTAL}/`" target="_blank" rel="noopener">
-            <span class="logo-mark">MWNF</span>
-          </a>
-          <div class="header-logos-container" v-if="headerLogos.length">
-            <div class="header-logos-header">{{ t('exhibition.sponsors.coOrganisers') }}</div>
-            <div class="header-logos">
-              <a
-                v-for="logo in headerLogos"
-                :key="logo.id ?? logo.image_url"
-                class="header-logo"
-                :href="logo.url || undefined"
-                :title="logoCaption(logo)"
-                target="_blank"
-                rel="noopener"
-              ><img :src="logo.image_url" :alt="logoCaption(logo)" /></a>
-            </div>
-          </div>
-        </div>
-
-        <!-- Legacy's centre cell is the platform label, linking to the About
-             page. The exhibition's own title lives in the banner and the bottom
-             banner, not here. -->
-        <div id="title-container">
-          <RouterLink to="/about">
-            <span id="title">{{ t('exhibition.identity.tagline') }}</span>
-          </RouterLink>
-        </div>
-
-        <div id="portals-search-container">
-          <div id="portal-links">
-            <RouterLink to="/">{{ $t('core.nav.home') }}</RouterLink>
-            <span> | </span>
-            <a :href="`${PORTAL}/about`" target="_blank" rel="noopener">{{ $t('exhibition.footer.aboutMwnf') }}</a>
-          </div>
-          <div id="search-container">
-            <form @submit.prevent="submitSearch">
-              <input id="search-input" type="search" v-model="searchInput" :placeholder="$t('exhibition.search.placeholder')" />
-              <button id="search-submit" type="submit" :aria-label="$t('exhibition.search.submit')">⌕</button>
-            </form>
-          </div>
-          <!-- No language switcher: `languages_enabled` holds English alone, and
-               per decision Q2 an exhibition ships one build per enabled language.
-               The switcher appears the day a second language is enabled. -->
-        </div>
-      </div>
-    </template>
-
-    <!-- Legacy stacks the named views in this order: banner (home only),
-         navigation, sub-banner (everywhere else). One PageShell section serves
-         both banners. -->
-    <template #banner>
-      <HomeBanner v-if="isHome" />
-      <SubBanner v-else />
-    </template>
-
-    <template #navigation>
-      <div id="navigation-inner">
-        <button id="hamburger" @click="menuOpen = !menuOpen" :aria-label="$t('exhibition.nav.menu')">☰</button>
-        <ul :class="{ open: menuOpen }">
-          <li v-for="item in navItems" :key="item.path" :class="`menu-${item.path}`">
-            <RouterLink :to="`/${item.path}`" @click="menuOpen = false">{{ item.label }}</RouterLink>
-          </li>
-          <li class="menu-my-collection">
-            <a :href="`${PORTAL}/mycollection/index.php`" target="_blank" rel="noopener">{{ $t('exhibition.nav.myCollection') }}</a>
-          </li>
-        </ul>
-      </div>
-    </template>
-
+  <PageShell
+    :languages="props.languages"
+    :language="props.language"
+    language-placement="header"
+    language-style="buttons"
+    :header-home="links.portal"
+    :header-logos="headerLogos"
+    :header-logos-title="headerLogos.length ? t('exhibition.sponsors.coOrganisers') : ''"
+    :header-title="t('exhibition.identity.tagline')"
+    header-title-href="#/about"
+    :header-links="headerLinks"
+    :search="{ placeholder: t('exhibition.search.placeholder'), submitLabel: t('exhibition.search.submit') }"
+    :banner-variant="isHome ? 'split' : 'section'"
+    :banner-image="bannerImage"
+    :banner-caption="banner"
+    :banner-caption-label="t('exhibition.media.detailFrom')"
+    :banner-title="isHome ? exhibitionTitle(locale) : sectionTitle"
+    :banner-subtitle="isHome ? exhibitionSubtitle(locale) : ''"
+    :banner-headline="isHome ? exhibitionHeadline(locale) : ''"
+    :banner-enter="isHome ? { label: t('exhibition.action.enter'), href: '#/about' } : null"
+    :banner-strapline="isHome ? t('exhibition.identity.strapline') : ''"
+    :nav-links="navLinks"
+    hyperlinks-variant="tiles"
+    :hyperlinks-title="exhibitionTitle(locale)"
+    hyperlinks-title-href="#/"
+    :hyperlinks-subtitle="exhibitionSubtitle(locale)"
+    :hyperlinks="bottomLinks"
+    :sponsor-groups="sponsorGroups"
+    :footer-links="footerLinks"
+    :footer-text="`${t('exhibition.footer.copyright')} 2004–${currentYear}`"
+    @search="submitSearch"
+    @update:language="emit('update:language', $event)"
+  >
+    <template #header-brand><span class="logo-mark">MWNF</span></template>
+    <PopupLogo />
     <slot />
-
-    <template #hyperlinks>
-      <BottomBanner />
-    </template>
-
-    <template #sponsors>
-      <LogoStrip />
-    </template>
-
-    <template #footer>
-      <div id="footer-links">
-        <a :href="`${PORTAL}/about`" target="_blank" rel="noopener">{{ $t('exhibition.footer.aboutMwnf') }}</a> |
-        <a :href="`${PORTAL}/about/contact`" target="_blank" rel="noopener">{{ $t('exhibition.footer.contact') }}</a> |
-        <a :href="`${PORTAL}/about/legal-notice`" target="_blank" rel="noopener">{{ $t('exhibition.footer.legalNotice') }}</a> |
-        <a :href="`${PORTAL}/about/credits`" target="_blank" rel="noopener">{{ $t('exhibition.footer.credits') }}</a> |
-        <a :href="`${PORTAL}/about/cookies`" target="_blank" rel="noopener">{{ $t('exhibition.footer.cookies') }}</a> |
-        <span>{{ $t('exhibition.footer.copyright') }} 2004–{{ currentYear }}</span>
-      </div>
-    </template>
   </PageShell>
 </template>
 
 <style scoped>
-/* ── Header ─────────────────────────────────────────────────────────────── */
-/* Legacy's header is white with a 5px contrast rule under it — not the solid
-   dark bar the galleries use. The rule itself is on `.mwnf-header`, in
-   theme/overrides.css. */
-#header-inner {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  min-height: 80px;
-}
-#logo-container { display: flex; align-items: center; gap: 16px; padding: 0 14px; z-index: 8; }
-#logo-container a { text-decoration: none; }
-.header-logos-container { font-size: 12px; text-align: center; }
-.header-logos-header { font-weight: 700; }
-.header-logos { display: flex; align-items: center; gap: 10px; }
-.header-logo img { max-height: 46px; max-width: 120px; object-fit: contain; }
 .logo-mark {
   display: inline-block;
-  border: 2px solid var(--secondary-text-color);
+  border: 2px solid currentColor;
   padding: 4px 8px;
   font-weight: 700;
   letter-spacing: 0.12em;
   font-size: 18px;
-}
-#title-container {
-  flex: 1;
-  min-width: 0;
-  text-align: center;
-  padding: 6px 8px;
-  z-index: 10;
-}
-#title-container a { color: inherit; text-decoration: none; }
-#title {
-  font-size: clamp(15px, 1.6vw, 22px);
-  line-height: 1.1;
-  overflow-wrap: break-word;
-}
-
-#portals-search-container {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  padding: 8px 12px;
-  font-size: 14px;
-  z-index: 10;
-}
-#portal-links a { text-decoration: none; padding: 0 8px; }
-#portal-links a:hover { text-decoration: underline; }
-#search-container { padding-top: 8px; }
-#search-input {
-  border: 2px solid var(--main-color);
-  border-radius: 4px;
-  padding: 4px 6px;
-  margin-right: 5px;
-  font-family: inherit;
-}
-#search-submit {
-  border: 2px solid var(--contrast-color);
-  background: var(--contrast-color);
-  border-radius: 4px;
-  color: var(--contrast-text-color);
-  padding: 4px 10px;
-  cursor: pointer;
-  font-size: 15px;
-}
-
-/* ── Navigation ─────────────────────────────────────────────────────────── */
-#navigation-inner { width: 100%; }
-/* One equal column per entry, however many there are. A fixed `repeat(8, 1fr)`
-   is right only for an exhibition that shows TIMELINE; this one does not, and
-   the eighth column would sit empty at the end of the bar. Legacy sizes the
-   items with flex-grow, which is the same behaviour. */
-#navigation-inner ul {
-  list-style: none;
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: 1fr;
-  width: 100%;
-  margin: 0;
-  padding: 0;
-}
-#navigation-inner li {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--contrast-color);
-  border: 1px solid rgba(0, 0, 0, 0.05);
-  line-height: 28px;
-}
-#navigation-inner a {
-  width: 100%;
-  text-align: center;
-  color: var(--contrast-text-color);
-  font-weight: 700;
-  text-decoration: none;
-  padding: 2px 4px;
-  font-size: 96%;
-  /* Legacy upper-cased the menu in JavaScript. Doing it in CSS instead keeps
-     each entry stored in its natural case, which is the only form a translator
-     can work with — and the only form that means anything in Arabic. */
-  text-transform: uppercase;
-}
-#navigation-inner a.router-link-active { background: rgba(0, 0, 0, 0.14); }
-#hamburger { display: none; }
-
-/* ── Footer ─────────────────────────────────────────────────────────────── */
-#footer-links { width: 100%; text-align: center; }
-#footer-links a { color: var(--main-text-color); text-decoration: none; }
-#footer-links a:hover { text-decoration: underline; }
-
-@media only screen and (max-width: 1199px) {
-  #navigation-inner ul { grid-auto-flow: row; grid-template-columns: repeat(4, 1fr); }
-}
-
-@media only screen and (max-width: 599px) {
-  #header-inner { min-height: 65px; flex-wrap: wrap; }
-  #title-container { flex-basis: 100%; order: 3; }
-  #navigation-inner ul { display: none; }
-  #navigation-inner ul.open { display: flex; flex-direction: column; }
-  #hamburger {
-    display: block;
-    background: var(--main-color);
-    color: var(--main-text-color);
-    border: none;
-    width: 100%;
-    padding: 6px;
-    font-size: 20px;
-    cursor: pointer;
-  }
 }
 </style>

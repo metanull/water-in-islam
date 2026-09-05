@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue'
-import { exhibition } from '../composables/useExhibitionData.js'
+import { exhibition, md } from '../composables/useExhibitionData.js'
 import { useI18n } from '@metanull/viewer-core'
 
 const { locale } = useI18n()
@@ -10,13 +10,15 @@ const { locale } = useI18n()
 // per-language in the package (`popup_logos` / `popup_logo_show`), because the
 // German instance suppresses the notice the English one shows.
 //
-// The body is legacy HTML with inline styles and an <img> on the legacy media
-// host; it is rendered as-is, exactly as the legacy client did with v-html.
-const content = computed(
-  () => exhibition.popup_logos?.[locale.value] ?? exhibition.popup_logos?.en ?? ''
+// The body is Markdown like every other field, rendered through the one
+// pipeline: the importer converts the legacy HTML on the way in, so a tag
+// arriving here means that conversion missed it and it shows as the characters
+// it is, which is where it can be seen and fixed.
+const content = computed(() =>
+  md(exhibition.value?.popup_logos?.[locale.value] ?? exhibition.value?.popup_logos?.en ?? '')
 )
 const enabled = computed(() => {
-  const show = exhibition.popup_logo_show
+  const show = exhibition.value?.popup_logo_show
   if (show === null || show === undefined) return false
   if (typeof show === 'boolean') return show
   return show[locale.value] ?? show.en ?? false

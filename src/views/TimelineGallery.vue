@@ -19,9 +19,9 @@ const router = useRouter()
 const { t } = useI18n()
 const era = (year) => eraLabel(year, t)
 
-const countryId = computed(() => countryIdForCode(route.params.country))
-const start = computed(() => (route.params.start === 'any' ? null : Number(route.params.start)))
-const end = computed(() => (route.params.end === 'any' ? null : Number(route.params.end)))
+const countryId = computed(() => countryIdForCode(String(route.query.country ?? 'all')))
+const start = computed(() => (route.query.start ? Number(route.query.start) : null))
+const end = computed(() => (route.query.end ? Number(route.query.end) : null))
 
 const matching = computed(() => sortChronological(items.value.filter(i => {
   if (countryId.value && i.country_id !== countryId.value) return false
@@ -33,10 +33,10 @@ const matching = computed(() => sortChronological(items.value.filter(i => {
   return true
 })))
 
-const page = computed(() => paginate(matching.value, route.params.page ?? 1))
+const page = computed(() => paginate(matching.value, route.query.page ?? 1))
 
 function navigate(p) {
-  router.push({ name: 'timeline-gallery', params: { ...route.params, page: p } })
+  router.push({ name: 'timeline-gallery', query: { ...route.query, page: p } })
 }
 </script>
 
@@ -56,7 +56,7 @@ function navigate(p) {
       </p>
       <p>{{ page.total }} {{ $t('exhibition.results.objects') }}</p>
       <p class="back-to-events">
-        <RouterLink :to="{ name: 'timeline-results', query: { c: route.params.country, start: route.params.start === 'any' ? '' : route.params.start, end: route.params.end === 'any' ? '' : route.params.end } }">
+        <RouterLink :to="{ name: 'timeline-results', query: { c: route.query.country ?? 'all', start: route.query.start ?? '', end: route.query.end ?? '' } }">
           ➤ {{ $t('exhibition.timeline.backToEvents') }}
         </RouterLink>
       </p>

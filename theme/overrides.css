@@ -27,12 +27,61 @@
   z-index: 89;
 }
 
-/* The header holds a flex row of its own, the navigation a full-width grid,
-   and the bottom banner and logo strip their own layouts, so none of them
-   wants PageShell's own flex treatment. */
-.mwnf-header,
-.mwnf-nav,
+/* The navigation is a full-width grid rather than PageShell's flex row. */
+.mwnf-nav__bar {
+  display: block;
+}
+
+/* The menu: one equal column per entry, however many there are, upper-cased
+   in CSS so each entry is stored in its natural case — the only form a
+   translator can work with, and the only form that means anything in a
+   language without capitals. */
+.mwnf-nav__links {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  width: 100%;
+}
+.mwnf-nav__links li {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--contrast-color, #a3d6d9);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  line-height: 28px;
+}
+.mwnf-nav__link {
+  width: 100%;
+  text-align: center;
+  padding: 2px 4px;
+  font-size: 96%;
+  text-transform: uppercase;
+}
+.mwnf-nav__link--active {
+  background: rgba(0, 0, 0, 0.14);
+  text-decoration: none;
+}
+
+/* The header row and the three banded sections are edge to edge inside the
+   column, each managing its own gutters. */
+.mwnf-header__inner {
+  min-height: 80px;
+  padding-inline: 14px 12px;
+}
+.mwnf-banner,
 .mwnf-hyperlinks,
 .mwnf-sponsors {
-  display: block;
+  padding-inline: 0;
+}
+
+/* The footer: one centred line of links and the copyright. */
+.mwnf-footer {
+  justify-content: center;
+  text-align: center;
+}
+
+@media only screen and (max-width: 48rem) {
+  .mwnf-nav__links { grid-auto-flow: row; }
+  .mwnf-nav--open .mwnf-nav__links { display: grid; }
+  .mwnf-nav__toggle { width: 100%; justify-content: center; font-size: 20px; }
 }
