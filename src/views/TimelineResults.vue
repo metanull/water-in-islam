@@ -90,28 +90,28 @@ const galleryItems = computed(() => {
         {{ $t('exhibition.timeline.to') }}
         {{ route.query.end ? era(Number(route.query.end)) : $t('exhibition.timeline.latest') }} |
         <span v-if="!usesLocalTimeline">{{ countryName }} | </span>
-        <span>{{ page.total }} {{ $t('exhibition.results.heading') }}</span>
+        <span>{{ page.total }} {{ $t('catalogue.results.heading') }}</span>
       </p>
 
       <div id="search-fields">
-        <label>{{ $t('exhibition.facet.startDate') }}
+        <label>{{ $t('catalogue.facet.startDate') }}
           <select class="legacy-select" v-model="start">
-            <option value="">{{ $t('exhibition.facet.any') }}</option>
+            <option value="">{{ $t('catalogue.facet.any') }}</option>
             <option v-for="d in yearBuckets" :key="`s${d.value}`" :value="d.value">{{ d.label }}</option>
           </select>
         </label>
-        <label>{{ $t('exhibition.facet.endDate') }}
+        <label>{{ $t('catalogue.facet.endDate') }}
           <select class="legacy-select" v-model="end">
-            <option value="">{{ $t('exhibition.facet.any') }}</option>
+            <option value="">{{ $t('catalogue.facet.any') }}</option>
             <option v-for="d in yearBuckets" :key="`e${d.value}`" :value="d.value">{{ d.label }}</option>
           </select>
         </label>
-        <label v-if="!usesLocalTimeline">{{ $t('exhibition.facet.country') }}
+        <label v-if="!usesLocalTimeline">{{ $t('catalogue.facet.country') }}
           <select class="legacy-select" v-model="country">
             <option v-for="c in timelineCountries" :key="c[0]" :value="c[0]">{{ c[1] }}</option>
           </select>
         </label>
-        <button class="legacy-button" @click="goToResults()">{{ $t('exhibition.action.go') }}</button>
+        <button class="legacy-button" @click="goToResults()">{{ $t('core.action.go') }}</button>
       </div>
 
       <div id="related-container" v-if="galleryItems.length">

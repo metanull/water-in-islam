@@ -30,7 +30,7 @@ const visible = computed(() => enabled.value && !!content.value && !dismissed.va
 
 <template>
   <div id="exhibition-popup" v-if="visible">
-    <button id="exhibition-popup-close" @click="dismissed = true" :aria-label="$t('exhibition.ui.close')">✕</button>
+    <button id="exhibition-popup-close" @click="dismissed = true" :aria-label="$t('core.action.close')">✕</button>
     <div id="exhibition-popup-content" v-html="content"></div>
   </div>
 </template>
