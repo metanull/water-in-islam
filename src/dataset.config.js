@@ -18,9 +18,11 @@ const languages = offeredLanguages()
 
 // Every page renders the chrome — the header logos, the banner and its
 // caption, the bottom banner and the sponsor strip — off these four; a page
-// adds what it reads on top.
+// adds what it reads on top. A route also says which section it belongs
+// to, and the shell reads that for the banner title and the active menu
+// entry (viewer-core's `useSection`).
 const CHROME = ['exhibition', 'items', 'partners', 'countries']
-const entities = (...names) => ({ entities: [...CHROME, ...names] })
+const meta = (section, ...names) => ({ section, entities: [...CHROME, ...names] })
 
 export default {
   // The dataset package this website renders. Must match the alias in
@@ -81,71 +83,71 @@ export default {
   //
   // The 'home' name replaces viewer-core's generic home route.
   extraViews: [
-    { path: '/', name: 'home', component: () => import('./views/Home.vue'), meta: entities() },
-    { path: '/about', name: 'about', component: () => import('./views/About.vue'), meta: entities('themes') },
-    { path: '/themes', name: 'themes', component: () => import('./views/Themes.vue'), meta: entities('themes') },
+    { path: '/', name: 'home', component: () => import('./views/Home.vue'), meta: meta('home') },
+    { path: '/about', name: 'about', component: () => import('./views/About.vue'), meta: meta('about', 'themes') },
+    { path: '/themes', name: 'themes', component: () => import('./views/Themes.vue'), meta: meta('themes', 'themes') },
     {
       path: '/theme/:id/:subtheme?/:image?',
       name: 'theme',
       component: () => import('./views/Theme.vue'),
-      meta: entities('themes', 'glossary', 'dynasties'),
+      meta: meta('themes', 'themes', 'glossary', 'dynasties'),
     },
     {
       path: '/theme-gallery/:id/:subtheme?',
       name: 'theme-gallery',
       component: () => import('./views/ThemeGallery.vue'),
-      meta: entities('themes'),
+      meta: meta('themes', 'themes'),
     },
-    { path: '/collection', name: 'collection', component: () => import('./views/CollectionSearch.vue'), meta: entities('tags') },
+    { path: '/collection', name: 'collection', component: () => import('./views/CollectionSearch.vue'), meta: meta('collection', 'tags') },
     {
       path: '/collection-results',
       name: 'collection-results',
       component: () => import('./views/CollectionResults.vue'),
-      meta: entities('tags', 'timelines'),
+      meta: meta('collection', 'tags', 'timelines'),
     },
     {
       path: '/item/:id',
       name: 'item',
       component: () => import('./views/ItemSheet.vue'),
-      meta: entities('languages', 'dynasties', 'glossary', 'timelines', 'timeline_events'),
+      meta: meta('database', 'languages', 'dynasties', 'glossary', 'timelines', 'timeline_events'),
     },
-    { path: '/search', name: 'search-results', component: () => import('./views/SearchResults.vue'), meta: entities() },
-    { path: '/how-to-search', name: 'search-how-to', component: () => import('./views/SearchHowTo.vue'), meta: entities() },
-    { path: '/partners', name: 'partners', component: () => import('./views/Partners.vue'), meta: entities() },
-    { path: '/partner/:id', name: 'partner', component: () => import('./views/PartnerProfile.vue'), meta: entities('languages') },
+    { path: '/search', name: 'search-results', component: () => import('./views/SearchResults.vue'), meta: meta('database') },
+    { path: '/how-to-search', name: 'search-how-to', component: () => import('./views/SearchHowTo.vue'), meta: meta('database') },
+    { path: '/partners', name: 'partners', component: () => import('./views/Partners.vue'), meta: meta('partners') },
+    { path: '/partner/:id', name: 'partner', component: () => import('./views/PartnerProfile.vue'), meta: meta('partners', 'languages') },
     {
       path: '/partner/:id/objects',
       name: 'partner-objects',
       component: () => import('./views/PartnerObjects.vue'),
-      meta: entities(),
+      meta: meta('partners'),
     },
     {
       path: '/institution/:id',
       name: 'institution',
       component: () => import('./views/InstitutionProfile.vue'),
-      meta: entities('languages'),
+      meta: meta('partners', 'languages'),
     },
     {
       path: '/institution/:id/monuments',
       name: 'institution-monuments',
       component: () => import('./views/InstitutionMonuments.vue'),
-      meta: entities(),
+      meta: meta('partners'),
     },
-    { path: '/related', name: 'related', component: () => import('./views/RelatedContent.vue'), meta: entities('related_content') },
-    { path: '/timeline', name: 'timeline', component: () => import('./views/Timeline.vue'), meta: entities('timelines', 'timeline_events') },
+    { path: '/related', name: 'related', component: () => import('./views/RelatedContent.vue'), meta: meta('related', 'related_content') },
+    { path: '/timeline', name: 'timeline', component: () => import('./views/Timeline.vue'), meta: meta('timeline', 'timelines', 'timeline_events') },
     {
       path: '/timeline-results',
       name: 'timeline-results',
       component: () => import('./views/TimelineResults.vue'),
-      meta: entities('timelines', 'timeline_events'),
+      meta: meta('timeline', 'timelines', 'timeline_events'),
     },
     {
       path: '/timeline/gallery',
       name: 'timeline-gallery',
       component: () => import('./views/TimelineGallery.vue'),
-      meta: entities('timelines', 'timeline_events'),
+      meta: meta('timeline', 'timelines', 'timeline_events'),
     },
-    { path: '/credits', name: 'credits', component: () => import('./views/Credits.vue'), meta: entities() },
+    { path: '/credits', name: 'credits', component: () => import('./views/Credits.vue'), meta: meta('credits') },
   ],
 
   // The legacy URL shapes, redirect-only, so a legacy address pasted after
