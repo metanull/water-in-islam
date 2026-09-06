@@ -47,17 +47,17 @@ function goToResults() {
 
       <div id="timeline-dates-container">
         <select class="legacy-select" v-model="start">
-          <option value="" disabled>{{ $t('exhibition.facet.startDate') }}</option>
+          <option value="" disabled>{{ $t('catalogue.facet.startDate') }}</option>
           <option v-for="d in yearBuckets" :key="`s${d.value}`" :value="d.value">{{ d.label }}</option>
         </select>
         <select class="legacy-select" v-model="end">
-          <option value="" disabled>{{ $t('exhibition.facet.endDate') }}</option>
+          <option value="" disabled>{{ $t('catalogue.facet.endDate') }}</option>
           <option v-for="d in yearBuckets" :key="`e${d.value}`" :value="d.value">{{ d.label }}</option>
         </select>
       </div>
 
       <div id="timeline-go">
-        <button class="legacy-button" @click="goToResults()">{{ $t('exhibition.action.go') }}</button>
+        <button class="legacy-button" @click="goToResults()">{{ $t('core.action.go') }}</button>
       </div>
     </div>
 

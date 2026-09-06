@@ -415,8 +415,8 @@ const routeId = computed(() => themeRouteId(theme.value))
 
     <!-- Glossary pop-up -->
     <div class="glossary-entry-container" v-if="openTerm">
-      <button class="glossary-close" @click="openTerm = null" :aria-label="$t('exhibition.ui.close')">✕</button>
-      <div class="glossary-header">{{ t('exhibition.nav.glossary') }}</div>
+      <button class="glossary-close" @click="openTerm = null" :aria-label="$t('core.action.close')">✕</button>
+      <div class="glossary-header">{{ t('record.glossary.heading') }}</div>
       <div class="glossary-entry">
         <div class="glossary-word">{{ openTerm.word }}</div>
         <div class="glossary-definition prose" v-html="md(openTerm.definition)"></div>

@@ -187,7 +187,7 @@ const bottomLinks = computed(() => [
     :header-title="t('exhibition.identity.tagline')"
     header-title-href="#/about"
     :header-links="headerLinks"
-    :search="{ placeholder: t('exhibition.search.placeholder'), submitLabel: t('exhibition.search.submit') }"
+    :search="{ placeholder: t('exhibition.search.placeholder'), submitLabel: t('catalogue.search.submit') }"
     :banner-variant="isHome ? 'split' : 'section'"
     :banner-image="bannerImage"
     :banner-caption="banner"

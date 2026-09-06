@@ -154,7 +154,7 @@ const website = computed(() => {
               >
                 <img :src="pic.url" :alt="`${partnerLabel(partner.id)} — ${index + 1}`" />
                 <div class="tooltip-text" v-if="pic.photographer || pic.copyright">
-                  <div v-if="pic.photographer">{{ t('exhibition.item.photograph') }}: {{ pic.photographer }}</div>
+                  <div v-if="pic.photographer">{{ t('record.media.photograph') }}: {{ pic.photographer }}</div>
                   <div v-if="pic.copyright">© {{ pic.copyright }}</div>
                 </div>
               </div>

@@ -47,7 +47,7 @@ const summary = computed(() => [
 
     <div id="info-container">
       <ResultsSummary :parts="summary" />
-      <p class="how-to"><RouterLink :to="{ name: 'search-how-to' }">{{ $t('exhibition.search.howToLink') }} ›</RouterLink></p>
+      <p class="how-to"><RouterLink :to="{ name: 'search-how-to' }">{{ $t('catalogue.search.howTo') }} ›</RouterLink></p>
     </div>
 
     <Pagination class="pages" :page-info="pageInfo" jump @navigate="goToPage" />
@@ -59,7 +59,7 @@ const summary = computed(() => [
         <template #empty>
           <p class="no-results">
             {{ $t('exhibition.results.noSearchResults') }}
-            <RouterLink :to="{ name: 'search-how-to' }">{{ $t('exhibition.search.howToLink') }}</RouterLink>
+            <RouterLink :to="{ name: 'search-how-to' }">{{ $t('catalogue.search.howTo') }}</RouterLink>
             <span class="no-results-divider">|</span>
             <RouterLink :to="{ name: 'collection' }">{{ $t('exhibition.section.collection') }}</RouterLink>
           </p>

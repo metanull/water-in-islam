@@ -57,7 +57,7 @@ const visibleFacets = computed(() => FACET_CATEGORIES.filter((c) => (options.val
          Themes page, which is `#/themes` now. -->
     <I18nText id="description" class="prose" dir="auto" keypath="exhibition.collection.intro" />
     <p id="how-to-search-link">
-      <RouterLink :to="{ name: 'search-how-to' }">{{ $t('exhibition.search.howToLink') }}</RouterLink>
+      <RouterLink :to="{ name: 'search-how-to' }">{{ $t('catalogue.search.howTo') }}</RouterLink>
     </p>
   </div>
 </template>

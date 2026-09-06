@@ -5,6 +5,6 @@ const router = useRouter()
 
 <template>
   <div class="back-bar">
-    <button @click="router.back()">↩ {{ $t('exhibition.action.back') }}</button>
+    <button @click="router.back()">↩ {{ $t('core.action.back') }}</button>
   </div>
 </template>
