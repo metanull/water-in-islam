@@ -48,11 +48,11 @@ function goToResults() {
       <div id="timeline-dates-container">
         <select class="legacy-select" v-model="start">
           <option value="" disabled>{{ $t('exhibition.facet.startDate') }}</option>
-          <option v-for="d in yearBuckets" :key="`s${d[0]}`" :value="d[0]">{{ d[1] }}</option>
+          <option v-for="d in yearBuckets" :key="`s${d.value}`" :value="d.value">{{ d.label }}</option>
         </select>
         <select class="legacy-select" v-model="end">
           <option value="" disabled>{{ $t('exhibition.facet.endDate') }}</option>
-          <option v-for="d in yearBuckets" :key="`e${d[0]}`" :value="d[0]">{{ d[1] }}</option>
+          <option v-for="d in yearBuckets" :key="`e${d.value}`" :value="d.value">{{ d.label }}</option>
         </select>
       </div>
 

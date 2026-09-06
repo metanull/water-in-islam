@@ -1,20 +1,20 @@
 <script setup>
 import { computed } from 'vue'
-import { useRoute, useRouter, RouterLink } from 'vue-router'
+import { useRoute, RouterLink } from 'vue-router'
+import { sortChronological, useListQuery, usePagination } from '@metanull/viewer-core'
+import { Pagination, RecordGrid } from '@metanull/viewer-layout/content'
 import {
   items, visiblePartnerById, partnerRoute, partnerLabel, countryLabel, tr, defaultLang,
 } from '../composables/useExhibitionData.js'
-import { sortChronological, paginate } from '../composables/useCollection.js'
-import ObjectGrid from '../components/ObjectGrid.vue'
-import PageLinks from '../components/PageLinks.vue'
+import { PAGE_SIZE, useGridRecords } from '../composables/useCollection.js'
 import BackLink from '../components/BackLink.vue'
 
 // The member items one partner holds. Legacy paginated this at the API's page
-// size; the same 9-per-page grid is used here as for collection results.
+// size; the same nine-a-page grid is used here as for collection results.
 //
 // Legacy split this into PartnerObjects and InstitutionMonuments, one per
-// endpoint. Here it is one component and `variant` supplies the count line and
-// the route the pager pushes to.
+// endpoint. Here it is one component and `variant` supplies the count line;
+// the pager stays on whichever route the page was reached by.
 const props = defineProps({
   variant: { type: String, default: 'partner' },
 })
@@ -22,23 +22,17 @@ const props = defineProps({
 const isInstitutionView = computed(() => props.variant === 'institution')
 
 const route = useRoute()
-const router = useRouter()
+const gridRecords = useGridRecords()
+const { page, goToPage } = useListQuery()
 
 const partner = computed(() => visiblePartnerById(route.params.id))
 const held = computed(() => {
   const p = partner.value
   if (!p) return []
-  return sortChronological(items.value.filter(i => i.partner_id === p.id))
+  return sortChronological((items.value ?? []).filter((i) => i.partner_id === p.id), { undated: 'first' })
 })
-const page = computed(() => paginate(held.value, route.query.page ?? 1))
-
-function navigate(p) {
-  router.push({
-    name: isInstitutionView.value ? 'institution-monuments' : 'partner-objects',
-    params: route.params,
-    query: { ...route.query, page: p },
-  })
-}
+const pageInfo = usePagination(held, { page, size: PAGE_SIZE })
+const rows = computed(() => gridRecords(pageInfo.value.rows))
 
 const city = computed(() => (partner.value ? tr('partners', partner.value.id, defaultLang).city ?? '' : ''))
 </script>
@@ -51,17 +45,20 @@ const city = computed(() => (partner.value ? tr('partners', partner.value.id, de
       <p id="partner-name">{{ partnerLabel(partner.id) }}</p>
       <p id="partner-location">{{ [city, countryLabel(partner.country_id)].filter(Boolean).join(', ') }}</p>
       <p id="partner-count">
-        {{ page.total }} {{ isInstitutionView ? 'monument(s)' : 'object(s)' }} in this Exhibition
+        {{ pageInfo.total }} {{ isInstitutionView ? 'monument(s) in this Exhibition' : $t('exhibition.partner.objectsInExhibition') }}
       </p>
     </div>
 
-    <PageLinks :page-info="page" @navigate="navigate" />
+    <Pagination class="pages" :page-info="pageInfo" jump @navigate="goToPage" />
 
     <div id="content-container">
-      <ObjectGrid v-if="page.rows.length" :results="page.rows" />
-      <p v-else class="no-results">
-        This {{ isInstitutionView ? 'institution' : 'partner' }} holds nothing in this Exhibition.
-      </p>
+      <RecordGrid :records="rows" :action-label="$t('exhibition.action.seeDatabaseEntry')">
+        <template #empty>
+          <p class="no-results">
+            This {{ isInstitutionView ? 'institution' : 'partner' }} holds nothing in this Exhibition.
+          </p>
+        </template>
+      </RecordGrid>
       <div id="profile-link-container">
         <RouterLink id="profile-link" :to="partnerRoute(partner)">
           ➤ {{ isInstitutionView ? 'Institution' : 'Partner' }} Profile
@@ -69,7 +66,7 @@ const city = computed(() => (partner.value ? tr('partners', partner.value.id, de
       </div>
     </div>
 
-    <PageLinks :page-info="page" @navigate="navigate" />
+    <Pagination class="pages" :page-info="pageInfo" jump @navigate="goToPage" />
   </div>
 </template>
 
@@ -79,6 +76,7 @@ const city = computed(() => (partner.value ? tr('partners', partner.value.id, de
 #partner-name { font-size: 22px; font-weight: 700; color: var(--theme-dark); }
 #partner-location { color: #555; }
 #partner-count { font-size: 13px; color: #666; margin-top: 3px; }
+.pages { padding-inline: 20px; }
 #content-container { padding: 0 20px; }
 #profile-link-container { padding-top: 16px; }
 #profile-link { color: var(--link-blue); }

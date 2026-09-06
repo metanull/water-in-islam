@@ -1,43 +1,38 @@
 <script setup>
 import { computed } from 'vue'
-import { useRoute, useRouter, RouterLink } from 'vue-router'
+import { RouterLink } from 'vue-router'
+import { dateRange, eraLabel, sortChronological, useI18n, useListQuery, usePagination } from '@metanull/viewer-core'
+import { Pagination, RecordGrid } from '@metanull/viewer-layout/content'
 import { items, countryLabel } from '../composables/useExhibitionData.js'
-import { sortChronological, paginate } from '../composables/useCollection.js'
-import { countryIdForCode, eraLabel } from '../composables/useTimeline.js'
-import { useI18n } from '@metanull/viewer-core'
-import ObjectGrid from '../components/ObjectGrid.vue'
-import PageLinks from '../components/PageLinks.vue'
+import { PAGE_SIZE, useGridRecords } from '../composables/useCollection.js'
+import { countryIdForCode } from '../composables/useTimeline.js'
 import BackLink from '../components/BackLink.vue'
 
 // The member items whose dates overlap the timeline search's country and
 // period. Legacy asked `/items` for this; here it is the same join, done
 // client-side, which is exactly what the package spec anticipated
 // ("the timeline-gallery page joins events to member items by country + year
-// range client-side").
-const route = useRoute()
-const router = useRouter()
+// range client-side"). Overlap, not containment: a period is a window on the
+// chronology, and an object made across its edge belongs in it.
 const { t } = useI18n()
 const era = (year) => eraLabel(year, t)
+const gridRecords = useGridRecords()
 
-const countryId = computed(() => countryIdForCode(String(route.query.country ?? 'all')))
-const start = computed(() => (route.query.start ? Number(route.query.start) : null))
-const end = computed(() => (route.query.end ? Number(route.query.end) : null))
+// The country and the period travel in the query, like every filter; an
+// absent bound is an open one.
+const { filters, page, goToPage } = useListQuery({ keys: ['country', 'start', 'end'] })
+const countryId = computed(() => countryIdForCode(filters.country || 'all'))
+const start = computed(() => (filters.start ? Number(filters.start) : null))
+const end = computed(() => (filters.end ? Number(filters.end) : null))
 
-const matching = computed(() => sortChronological(items.value.filter(i => {
-  if (countryId.value && i.country_id !== countryId.value) return false
-  const itemStart = i.start_date
-  const itemEnd = i.end_date ?? i.start_date
-  if (!Number.isFinite(itemStart)) return false
-  if (start.value != null && itemEnd < start.value) return false
-  if (end.value != null && itemStart > end.value) return false
-  return true
-})))
+const matching = computed(() => {
+  let list = (items.value ?? []).filter((i) => Number.isFinite(i.start_date) && (!countryId.value || i.country_id === countryId.value))
+  list = dateRange(list, { begin: filters.start, end: filters.end, mode: 'overlap' })
+  return sortChronological(list, { undated: 'first' })
+})
 
-const page = computed(() => paginate(matching.value, route.query.page ?? 1))
-
-function navigate(p) {
-  router.push({ name: 'timeline-gallery', query: { ...route.query, page: p } })
-}
+const pageInfo = usePagination(matching, { page, size: PAGE_SIZE })
+const rows = computed(() => gridRecords(pageInfo.value.rows))
 </script>
 
 <template>
@@ -54,22 +49,23 @@ function navigate(p) {
           {{ end != null ? era(end) : $t('exhibition.timeline.latest') }}
         </span>
       </p>
-      <p>{{ page.total }} {{ $t('exhibition.results.objects') }}</p>
+      <p>{{ pageInfo.total }} {{ $t('catalogue.results.objects') }}</p>
       <p class="back-to-events">
-        <RouterLink :to="{ name: 'timeline-results', query: { c: route.query.country ?? 'all', start: route.query.start ?? '', end: route.query.end ?? '' } }">
+        <RouterLink :to="{ name: 'timeline-results', query: { c: filters.country || 'all', start: filters.start, end: filters.end } }">
           ➤ {{ $t('exhibition.timeline.backToEvents') }}
         </RouterLink>
       </p>
     </div>
 
-    <PageLinks :page-info="page" @navigate="navigate" />
+    <Pagination class="pages" :page-info="pageInfo" jump @navigate="goToPage" />
 
     <div id="content-container">
-      <ObjectGrid v-if="page.rows.length" :results="page.rows" />
-      <p v-else class="no-results">{{ $t('exhibition.results.noObjectsInPeriod') }}</p>
+      <RecordGrid :records="rows" :action-label="$t('exhibition.action.seeDatabaseEntry')">
+        <template #empty><p class="no-results">{{ $t('exhibition.results.noObjectsInPeriod') }}</p></template>
+      </RecordGrid>
     </div>
 
-    <PageLinks :page-info="page" @navigate="navigate" />
+    <Pagination class="pages" :page-info="pageInfo" jump @navigate="goToPage" />
   </div>
 </template>
 
@@ -78,6 +74,7 @@ function navigate(p) {
 #gallery-header { padding: 0 20px 12px; }
 #gallery-header span { font-weight: 700; }
 .back-to-events a { color: var(--link-blue); font-size: 13px; }
+.pages { padding-inline: 20px; }
 #content-container { padding: 0 20px; }
 .no-results { padding: 30px 0; }
 </style>
