@@ -5,9 +5,9 @@
 // is called, which logos go where — the MWNF mark in the header, and the
 // dismissible popup notice, which is this exhibition's own.
 import { computed } from 'vue'
-import { useI18n, useSiteConfig } from '@metanull/viewer-core'
+import { useI18n, useSection, useSiteConfig } from '@metanull/viewer-core'
 import { PageShell } from '@metanull/viewer-layout'
-import { useRoute, useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
 import {
   exhibition, chromeImage, itemById, itemLabel, partnerLabel, countryLabel, tr, defaultLang,
   exhibitionTitle, exhibitionSubtitle, exhibitionHeadline, bannerCaption,
@@ -24,12 +24,14 @@ const props = defineProps({
 })
 const emit = defineEmits(['update:language'])
 
-const route = useRoute()
 const router = useRouter()
 const { t, locale } = useI18n()
 const { links } = useSiteConfig()
 
-const isHome = computed(() => route.name === 'home')
+// The section a route declares (`meta.section` in dataset.config.js): the
+// banner title and the active menu entry both read it.
+const section = useSection()
+const isHome = computed(() => section.value === 'home')
 const currentYear = new Date().getFullYear()
 
 // `all-objects` is legacy's sentinel for an empty submission, and the value
@@ -63,10 +65,7 @@ const navLinks = computed(() =>
     .map((item) => ({
       label: item.label,
       href: `#/${item.path}`,
-      active:
-        route.path === `/${item.path}` ||
-        route.path.startsWith(`/${item.path}/`) ||
-        route.path.startsWith(`/${item.path}-`),
+      active: section.value === item.path,
     }))
     .concat([{ label: t('exhibition.nav.myCollection'), href: links.myCollection, external: true }]),
 )
@@ -153,21 +152,20 @@ const banner = computed(() => {
   }
 })
 
-// The section title over the narrow banner, derived from the route: data the
-// site owns, rendered by the layout.
-const sectionTitle = computed(() => {
-  const path = route.path
-  if (path.startsWith('/theme')) return t('exhibition.section.themes')
-  if (path.startsWith('/collection')) return t('exhibition.section.collection')
-  if (path.startsWith('/item') || path.startsWith('/search')) return t('exhibition.section.database')
-  if (path.startsWith('/how-to-search')) return t('exhibition.section.database')
-  if (path.startsWith('/partner') || path.startsWith('/institution')) return t('exhibition.section.partners')
-  if (path.startsWith('/related')) return t('exhibition.related.title')
-  if (path.startsWith('/timeline')) return t('exhibition.section.timeline')
-  if (path.startsWith('/about')) return t('exhibition.section.about')
-  if (path.startsWith('/credits')) return t('exhibition.section.credits')
-  return t('exhibition.section.error')
-})
+// The section title over the narrow banner: the section the route declares,
+// named — each name written out for the check; a route with no section is
+// the error page.
+const SECTION_TITLES = computed(() => ({
+  themes: t('exhibition.section.themes'),
+  collection: t('exhibition.section.collection'),
+  database: t('exhibition.section.database'),
+  partners: t('exhibition.section.partners'),
+  related: t('exhibition.related.title'),
+  timeline: t('exhibition.section.timeline'),
+  about: t('exhibition.section.about'),
+  credits: t('exhibition.section.credits'),
+}))
+const sectionTitle = computed(() => SECTION_TITLES.value[section.value] ?? t('exhibition.section.error'))
 
 // Legacy's BottomBanner: the exhibition's identity on the left, and the two
 // ways into it on the right. It sits under every page, including Home.
