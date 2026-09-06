@@ -125,6 +125,69 @@
   --mwnf-banner-section-max-height: 150px;
   --mwnf-banner-section-title-size: clamp(1.25rem, 3vw, 2.375rem);
 
+  /* ---------- Content: the record page ---------- */
+  /* The sheet as the exhibition platform set it: bold black labels over
+     plain values, no cell borders, the photo gallery on a white ground, the
+     accent on the active thumbnail and the popover frame. */
+  --mwnf-sheet-text-size: 0.9375rem;
+  --mwnf-sheet-label-size: 0.9375rem;
+  --mwnf-sheet-label-weight: 700;
+  --mwnf-sheet-label-color: #000000;
+  --mwnf-sheet-gap: 0.75rem;
+  --mwnf-sheet-toggle-color: #000000;
+  --mwnf-sheet-term-color: #000000;
+  --mwnf-sheet-term-underline: #a3d6d9;
+  --mwnf-sheet-section-border: 1px solid #e0e0e0;
+  --mwnf-sheet-heading-size: 1rem;
+  --mwnf-sheet-heading-color: #000000;
+  --mwnf-credits-border: 1px solid #e0e0e0;
+  --mwnf-credits-size: 0.875rem;
+  --mwnf-credits-color: #000000;
+  --mwnf-languages-gap: 0.125rem;
+  --mwnf-languages-button-border: 1px solid #000000;
+  --mwnf-languages-button-text: #000000;
+  --mwnf-languages-button-size: 0.8125rem;
+  --mwnf-languages-active-background: #000000;
+  --mwnf-languages-active-text: #ffffff;
+  --mwnf-media-background: #ffffff;
+  --mwnf-media-thumb-active-border: 2px solid #a3d6d9;
+  --mwnf-media-caption-color: #555555;
+  --mwnf-popover-border: 2px solid #a3d6d9;
+  --mwnf-popover-title-background: #000000;
+  --mwnf-grid-card-background: rgba(0, 0, 0, 0.85);
+
+  /* ---------- Content: the lists ---------- */
+  /* The tile grid, the "filter further by" column, the summary line and the
+     page links as the platform drew them: white controls with a grey border,
+     the active page in black. */
+  --mwnf-grid-columns: 3;
+  --mwnf-grid-gap: 4px;
+  --mwnf-grid-tile-background: #ffffff;
+  --mwnf-grid-card-text: #ffffff;
+  --mwnf-filter-padding: 14px;
+  --mwnf-filter-border: none;
+  --mwnf-filter-background: #e0e0e0;
+  --mwnf-filter-gap: 10px;
+  --mwnf-filter-title-size: 1rem;
+  --mwnf-filter-title-color: #000000;
+  --mwnf-filter-control-border: 1px solid #999999;
+  --mwnf-filter-control-background: #ffffff;
+  --mwnf-filter-control-padding: 5px;
+  --mwnf-filter-reset-background: #000000;
+  --mwnf-filter-reset-text: #ffffff;
+  --mwnf-summary-size: 0.9375rem;
+  --mwnf-summary-color: #000000;
+  --mwnf-summary-value-color: #000000;
+  --mwnf-summary-border: none;
+  --mwnf-summary-padding: 0;
+  --mwnf-pagination-size: 0.8125rem;
+  --mwnf-pagination-button-border: 1px solid #000000;
+  --mwnf-pagination-button-background: #ffffff;
+  --mwnf-pagination-button-text: #000000;
+  --mwnf-pagination-button-hover-background: #e0e0e0;
+  --mwnf-pagination-active-background: #000000;
+  --mwnf-pagination-active-text: #ffffff;
+
   /* ---------- Navigation: the menu button ---------- */
   --mwnf-nav-toggle-background: #a3d6d9;
   --mwnf-nav-toggle-color: #000000;
