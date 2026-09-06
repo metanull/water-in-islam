@@ -5,12 +5,13 @@ import {
   themeByRouteId, themeText, themePictures, romanFor,
 } from '../composables/useExhibitionData.js'
 import { pictureParent } from '../composables/useThemePresentation.js'
-import { sortChronological } from '../composables/useCollection.js'
-import ObjectGrid from '../components/ObjectGrid.vue'
+import { useGridRecords } from '../composables/useCollection.js'
 import BackLink from '../components/BackLink.vue'
-import { useI18n } from '@metanull/viewer-core'
+import { sortChronological, useI18n } from '@metanull/viewer-core'
+import { RecordGrid } from '@metanull/viewer-layout/content'
 
 const { locale } = useI18n()
+const gridRecords = useGridRecords()
 
 // Legacy's ThemeGallery: every record a theme touches, as one grid, with a
 // dropdown that narrows it to a single sub-theme.
@@ -68,8 +69,9 @@ const results = computed(() => {
       out.push(parent)
     }
   }
-  return sortChronological(out)
+  return sortChronological(out, { undated: 'first' })
 })
+const rows = computed(() => gridRecords(results.value))
 
 const title = computed(() => themeText(theme.value, locale.value).title ?? theme.value?.internal_name ?? '')
 const roman = computed(() => romanFor(theme.value?.display_order ?? 1))
@@ -97,8 +99,9 @@ function onSubThemeChange(event) {
 
     <div id="theme-gallery-content">
       <div id="theme-gallery-objects">
-        <ObjectGrid v-if="results.length" :results="results" />
-        <p v-else class="no-results">{{ $t('exhibition.theme.noRecords') }}</p>
+        <RecordGrid :records="rows" :action-label="$t('exhibition.action.seeDatabaseEntry')">
+          <template #empty><p class="no-results">{{ $t('exhibition.theme.noRecords') }}</p></template>
+        </RecordGrid>
       </div>
 
       <div class="subtheme-filter" v-if="subThemes.length">
