@@ -278,6 +278,49 @@ describe('website smoke test', () => {
     app.unmount()
   }, 30000)
 
+  it('timeline country id filter produces the same results as the legacy two-letter code', async () => {
+    const [, items] = await loadEntities(['exhibition', 'items'])
+    // Find an item with Greece (grc) to use for the test
+    const datedGrc = items.find((i) => Number.isFinite(i.start_date) && i.country_id === 'grc')
+    if (!datedGrc) {
+      // Skip if no Greece items exist
+      return
+    }
+
+    // Mount with the country id (grc)
+    const { app: appId, host: hostId } = await mountSite(
+      `#/timeline-results?country=grc&begin=${datedGrc.start_date}&end=${datedGrc.end_date ?? datedGrc.start_date}`,
+    )
+    await vi.waitFor(() => expect(hostId.querySelector('.mwnf-summary')).not.toBeNull(), { timeout: 20000 })
+
+    // Mount with the legacy code (gr)
+    const { app: appCode, host: hostCode } = await mountSite(
+      `#/timeline-results?country=gr&begin=${datedGrc.start_date}&end=${datedGrc.end_date ?? datedGrc.start_date}`,
+    )
+    await vi.waitFor(() => expect(hostCode.querySelector('.mwnf-summary')).not.toBeNull(), { timeout: 20000 })
+
+    // Both should render the same number of rows
+    const rowsId = hostId.querySelectorAll('.mwnf-timeline__row').length
+    const rowsCode = hostCode.querySelectorAll('.mwnf-timeline__row').length
+    expect(rowsId).toBe(rowsCode)
+
+    // Both should have the same gallery link text and count
+    const galleryId = hostId.querySelector('.mwnf-timeline__gallery')
+    const galleryCode = hostCode.querySelector('.mwnf-timeline__gallery')
+    if (galleryId && galleryCode) {
+      expect(galleryId.textContent).toBe(galleryCode.textContent)
+    }
+
+    // The first row's caption should contain the country name "Greece"
+    const firstRowId = hostId.querySelector('.mwnf-timeline__row')
+    if (firstRowId) {
+      expect(firstRowId.textContent).toContain('Greece')
+    }
+
+    appId.unmount()
+    appCode.unmount()
+  }, 60000)
+
   it('renders the related content on the composed link list', async () => {
     const { app, host } = await mountSite('#/related')
     await vi.waitFor(() => expect(host.querySelector('.mwnf-link-list')).not.toBeNull(), { timeout: 20000 })

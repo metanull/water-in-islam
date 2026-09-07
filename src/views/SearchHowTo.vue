@@ -7,14 +7,8 @@ import { TextPageView } from '@metanull/viewer-layout/views'
 // collection entrance, the only page that links here (its own `howTo`
 // entry, over the same route name) — the view's `back` is a fixed
 // destination, not `router.back()`, so there is no page-agnostic answer.
-//
-// `body` is a function, not the entry name string: viewer-layout 2.9.0's
-// TextPageView passes a string `body` to `I18nText` under the wrong prop
-// name (`entry-name` instead of `keypath`), which renders nothing. Reading
-// the entry through `ctx.t` and handing back Markdown text takes the
-// view's other body path instead, which does not go through that prop.
 const searchHowToSpec = {
-  body: (ctx) => ctx.t('catalogue.search.howToEssay'),
+  body: 'catalogue.search.howToEssay',
   back: { label: 'core.action.back', to: { name: 'collection' } },
 }
 </script>
