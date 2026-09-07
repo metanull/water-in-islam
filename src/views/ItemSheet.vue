@@ -1,8 +1,10 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
-import { NotFoundView, searchGlossary, useI18n, useSiteConfig } from '@metanull/viewer-core'
-import { BackLink, RecordLanguages, RelatedRecords, SheetSection } from '@metanull/viewer-layout/content'
+import { NotFoundView, useI18n, useSiteConfig } from '@metanull/viewer-core'
+import {
+  BackLink, DynastyList, GlossaryTool, RecordLanguages, RelatedRecords, SheetSection,
+} from '@metanull/viewer-layout/content'
 import { RecordView } from '@metanull/viewer-layout/views'
 import {
   labelOf, partnerById, partnerRoute, dynastyById, translations, defaultLang, md, itemById,
@@ -17,8 +19,11 @@ import { itemSheet } from '../composables/sheet.js'
 // citation and the related records are the view's. What this page owns
 // fills the view's slots — the blocks only an exhibition has: the source
 // database by project family, the portal links, the timeline tool behind the
-// `hasTimeline` gate, the glossary tool, the dynasty popouts, the
-// cross-references to sibling sites, and the print action.
+// `hasTimeline` gate, the cross-references to sibling sites, and the print
+// action. The glossary tool and the dynasty popouts are the layout's own
+// content components (GlossaryTool, DynastyList) — this page just feeds
+// them the language and, for dynasties, the raw records legacy's own rule
+// (no popout for one with no history text) has already filtered.
 //
 // A per-language build ships every member's `languages` array but not every
 // member's text in this language (`itemById`'s own rule, in
@@ -73,19 +78,24 @@ function relatedOutsideRefs(records, outside, record) {
   return [...outside, ...missing]
 }
 
-// Popouts: timeline, glossary tool, one per dynasty.
+// Popout: the timeline only — the glossary tool and the dynasty popouts
+// below are the layout's own native `<details>` toggles.
 const openPopup = ref(null)
 function togglePopup(which) {
   openPopup.value = openPopup.value === which ? null : which
 }
 
-const dynastyEntries = (record, language) =>
-  (record.dynasty_ids ?? [])
-    .map((id) => {
-      const translated = translations('dynasties', language)[id] ?? translations('dynasties', defaultLang)[id] ?? {}
-      return { id, record: dynastyById.value.get(id), ...translated }
-    })
-    .filter((d) => d.history)
+// DynastyList wants the raw dynasty records and a `tr` function of its own,
+// not a pre-merged object — `tr` is called once per dynasty, so it closes
+// over `language` rather than taking it as an argument.
+function dynastyTr(dynasty, language) {
+  return translations('dynasties', language)[dynasty.id] ?? translations('dynasties', defaultLang)[dynasty.id] ?? {}
+}
+function dynastiesWithHistory(record, language) {
+  return (record.dynasty_ids ?? [])
+    .map((id) => dynastyById.value.get(id))
+    .filter((d) => d && dynastyTr(d, language).history)
+}
 
 const timelineCountry = ref('all')
 watch(item, (it) => { timelineCountry.value = it ? (countryCodeOf(it.country_id) ?? 'all') : 'all' }, { immediate: true })
@@ -101,10 +111,6 @@ const itemEvents = computed(() => {
   if (from == null) return []
   return findEvents({ countryCode: timelineCountry.value, start: from, end: to })
 })
-
-const glossaryInput = ref('')
-const glossaryMatches = (language) => searchGlossary(glossaryInput.value, language)
-const selectedGlossary = ref(null)
 
 // Legacy's "As PDF (including images)" was the browser's own print dialog.
 function printSheet() {
@@ -150,7 +156,7 @@ function printSheet() {
       <span v-else>{{ labelOf('partners', record.partner_id) }}</span>
     </template>
 
-    <template #related="{ record, language, records, outside }">
+    <template #related="{ record, language, records, outside, dir }">
       <div class="related-content-container">
         <p class="related-header related-header--caps">{{ $t('exhibition.related.title') }}</p>
         <p class="related-description">{{ t('exhibition.related.description') }}</p>
@@ -206,44 +212,15 @@ function printSheet() {
         </div>
 
         <!-- Glossary tool -->
-        <div>
-          <p class="related-line clickable" @click="togglePopup('glossaryTool')">➤ {{ t('record.glossary.tool') }}</p>
-          <div class="popout" v-if="openPopup === 'glossaryTool'">
-            <div class="popout-close" @click="openPopup = null">✕</div>
-            <div class="popout-title">{{ t('record.glossary.heading') }}</div>
-            <div class="popout-instructions">{{ t('record.glossary.instructions') }}</div>
-            <input class="glossary-input" type="text" v-model="glossaryInput" />
-            <ul class="glossary-list" v-if="glossaryInput && !selectedGlossary">
-              <li v-for="hit in glossaryMatches(language)" :key="hit.id" @click="selectedGlossary = hit; glossaryInput = hit.spelling">{{ hit.spelling }}</li>
-            </ul>
-            <div class="popout-scroll" v-if="selectedGlossary">
-              <p class="info-label">{{ t('record.glossary.definition') }}</p>
-              <div v-html="md(selectedGlossary.definition)"></div>
-            </div>
-          </div>
-        </div>
+        <GlossaryTool :language="language" :dir="dir" />
 
         <!-- Dynasties -->
-        <div v-if="dynastyEntries(record, language).length">
-          <p class="related-sub">{{ t('record.dynasty.list') }}</p>
-          <div v-for="dynasty in dynastyEntries(record, language)" :key="dynasty.id">
-            <p class="related-line clickable" @click="togglePopup(`dynasty:${dynasty.id}`)">➤ {{ dynasty.name }}</p>
-            <div class="popout" v-if="openPopup === `dynasty:${dynasty.id}`">
-              <div class="popout-close" @click="openPopup = null">✕</div>
-              <div class="popout-title">{{ t('record.dynasty.heading') }}</div>
-              <div class="popout-scroll">
-                <div class="dynasty-name">{{ dynasty.name }}</div>
-                <p v-if="dynasty.also_known_as">{{ dynasty.also_known_as }}</p>
-                <p v-if="dynasty.area">{{ dynasty.area }}</p>
-                <p v-if="dynasty.record?.from_ad != null">
-                  AH {{ dynasty.record.from_ah }}–{{ dynasty.record.to_ah }} /
-                  AD {{ dynasty.record.from_ad }}–{{ dynasty.record.to_ad }}
-                </p>
-                <div v-html="md(dynasty.history)"></div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <DynastyList
+          :heading="t('record.dynasty.list')"
+          :dynasties="dynastiesWithHistory(record, language)"
+          :tr="(d) => dynastyTr(d, language)"
+          :dir="dir"
+        />
 
         <!-- Audio / video -->
         <SheetSection v-if="record.media?.length" :heading="t('record.related.audioVideo')">
@@ -334,7 +311,6 @@ function printSheet() {
   margin-bottom: 14px;
   font-size: 13px;
 }
-.info-label { font-weight: 700; color: var(--main-color); margin-top: 12px; }
 .database-page :deep(.mwnf-sheet__value a) { color: var(--link-blue); }
 
 .related-content-container { margin-top: 30px; border-top: 3px solid var(--contrast-color); padding-top: 16px; }
@@ -375,7 +351,6 @@ function printSheet() {
   z-index: 2;
 }
 .popout-title { background: var(--main-color); color: var(--main-text-color); padding: 6px 12px; font-weight: 700; }
-.popout-instructions { padding: 8px 12px; font-size: 13px; }
 .popout-option { padding: 8px 12px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 13px; }
 .popout-option select { font-family: inherit; padding: 3px; }
 .popout-full-link { color: var(--link-blue); }
@@ -384,11 +359,6 @@ function printSheet() {
 .popout-empty { color: #777; font-style: italic; }
 .timeline-event { display: flex; gap: 10px; padding: 5px 0; border-bottom: 1px solid #eee; }
 .timeline-date { flex: 0 0 90px; font-weight: 700; }
-.dynasty-name { font-weight: 700; font-size: 16px; margin-bottom: 6px; }
-.glossary-input { width: calc(100% - 24px); margin: 0 12px 8px; padding: 5px; font-family: inherit; border: 1px solid var(--rule-grey); }
-.glossary-list { list-style: none; margin: 0 12px 10px; max-height: 180px; overflow: auto; border: 1px solid var(--rule-grey); }
-.glossary-list li { padding: 4px 8px; cursor: pointer; }
-.glossary-list li:hover { background: var(--rule-grey); }
 
 @media only screen and (max-width: 849px) {
   .database-page :deep(.mwnf-record__main) { display: block; }
