@@ -136,7 +136,7 @@ const galleryItems = computed(() => {
     <div id="timeline-results-container">
       <div id="labels-container" v-if="page.rows.length">
         <div id="date-label">{{ $t('exhibition.results.date') }}</div>
-        <div id="country-label">{{ usesLocalTimeline ? $t('waterInIslam.timeline.description') : $t('exhibition.results.countryDescription') }}</div>
+        <div id="country-label">{{ usesLocalTimeline ? $t('sheet.field.description') : $t('exhibition.results.countryDescription') }}</div>
       </div>
       <div v-if="page.rows.length">
         <div class="event-container" v-for="event in page.rows" :key="event.id">

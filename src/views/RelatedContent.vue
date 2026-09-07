@@ -17,18 +17,15 @@ const { t, locale } = useI18n()
 // The names below are that table's English rows, verbatim from the live API
 // (`exhibitionRelatedContents[*].categoryName`) — the same class of ported
 // legacy constant as the timeline's year-bucket algorithm, and recorded as a
-// package gap in README.md rather than pretended away. Each id is matched to
-// its own catalogue entry, written out in full, so a translator can find and
-// move each one.
-function categoryName(id) {
-  switch (id) {
-    case 1: return t('waterInIslam.related.categoryFurtherReading')
-    case 2: return t('waterInIslam.related.categoryRelatedMwnfContent')
-    case 3: return t('waterInIslam.related.categoryRelatedPartnerContent')
-    case 4: return t('waterInIslam.related.categoryOtherRelatedContent')
-    default: return null
-  }
-}
+// package gap in README.md rather than pretended away. They live under this
+// site's own namespace for now and move to the shared dictionary once every
+// exhibition site carries them.
+const CATEGORY_NAMES = computed(() => ({
+  1: t('waterInIslam.relatedCategory.furtherReading'),
+  2: t('waterInIslam.relatedCategory.mwnfContent'),
+  3: t('waterInIslam.relatedCategory.partnerContent'),
+  4: t('waterInIslam.relatedCategory.otherContent'),
+}))
 
 // Legacy's own display order for the four groups, which is the order its API
 // happened to answer in — not ascending id.
@@ -56,7 +53,7 @@ const groups = computed(() => {
   ]
   return ids.map(id => ({
     id,
-    name: categoryName(id),
+    name: CATEGORY_NAMES.value[id] ?? `${t('waterInIslam.relatedCategory.unknown')} ${id}`,
     entries: [...byCategory.get(id)].sort(
       (a, b) => (a.display_order ?? 0) - (b.display_order ?? 0)
     ),
@@ -75,11 +72,11 @@ const groups = computed(() => {
            exhibition's `extra.further_readings` instead. An empty page would
            read as a rendering fault, so say it plainly if it ever happens. -->
       <p class="related-content-empty" v-if="!groups.length">
-        {{ t('waterInIslam.related.emptyMessage') }}
+        {{ $t('waterInIslam.related.notAvailable') }}
       </p>
 
       <div class="related-content-category" v-for="group in groups" :key="group.id">
-        <div class="related-content-category-header">{{ group.name ?? group.id }}</div>
+        <div class="related-content-category-header">{{ group.name }}</div>
 
         <div class="related-content" v-for="entry in group.entries" :key="entry.legacy_id">
           <!-- kind: "text" — the entry IS the bibliography. No link, no title,

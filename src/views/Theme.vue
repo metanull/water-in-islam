@@ -308,7 +308,7 @@ const routeId = computed(() => themeRouteId(theme.value))
               <span v-html="mdInline(selectedCaption.name)"></span>
             </div>
             <div class="theme-component-selected-detail" v-if="selectedSheet.alternate_name">
-              {{ t('waterInIslam.item.alsoKnownAs') }} <span v-html="mdInline(selectedSheet.alternate_name)"></span>
+              {{ $t('sheet.field.alsoKnownAs') }}: <span v-html="mdInline(selectedSheet.alternate_name)"></span>
             </div>
             <div class="theme-component-selected-detail" v-if="selectedCaption.parent?.artist_names?.length">
               {{ selectedCaption.parent.artist_names.join(', ') }}
@@ -323,7 +323,7 @@ const routeId = computed(() => themeRouteId(theme.value))
             <!-- Decision Q3: a picture whose parent is not a member of this
                  exhibition says so rather than linking nowhere. -->
             <div class="theme-component-selected-detail unresolved" v-else>
-              {{ t('waterInIslam.item.unresolvedPicture') }}
+              {{ $t('waterInIslam.theme.recordNotInExhibition') }}
             </div>
           </div>
         </div>
