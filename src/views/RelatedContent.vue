@@ -6,7 +6,7 @@ import {
 import { useI18n } from '@metanull/viewer-core'
 import BackLink from '../components/BackLink.vue'
 
-const { locale } = useI18n()
+const { t, locale } = useI18n()
 
 // Legacy's RelatedContent: the exhibition's reading list, grouped by category
 // and ordered inside each group.
@@ -17,12 +17,17 @@ const { locale } = useI18n()
 // The names below are that table's English rows, verbatim from the live API
 // (`exhibitionRelatedContents[*].categoryName`) — the same class of ported
 // legacy constant as the timeline's year-bucket algorithm, and recorded as a
-// package gap in README.md rather than pretended away.
-const CATEGORY_NAMES = {
-  1: 'Further Reading',
-  2: 'Related MWNF Content',
-  3: 'Related Partner Content',
-  4: 'Other Related Content',
+// package gap in README.md rather than pretended away. Each id is matched to
+// its own catalogue entry, written out in full, so a translator can find and
+// move each one.
+function categoryName(id) {
+  switch (id) {
+    case 1: return t('waterInIslam.related.categoryFurtherReading')
+    case 2: return t('waterInIslam.related.categoryRelatedMwnfContent')
+    case 3: return t('waterInIslam.related.categoryRelatedPartnerContent')
+    case 4: return t('waterInIslam.related.categoryOtherRelatedContent')
+    default: return null
+  }
 }
 
 // Legacy's own display order for the four groups, which is the order its API
@@ -51,7 +56,7 @@ const groups = computed(() => {
   ]
   return ids.map(id => ({
     id,
-    name: CATEGORY_NAMES[id] ?? `Category ${id}`,
+    name: categoryName(id),
     entries: [...byCategory.get(id)].sort(
       (a, b) => (a.display_order ?? 0) - (b.display_order ?? 0)
     ),
@@ -70,12 +75,11 @@ const groups = computed(() => {
            exhibition's `extra.further_readings` instead. An empty page would
            read as a rendering fault, so say it plainly if it ever happens. -->
       <p class="related-content-empty" v-if="!groups.length">
-        The reading list for this exhibition is not yet available in the data
-        package.
+        {{ t('waterInIslam.related.emptyMessage') }}
       </p>
 
       <div class="related-content-category" v-for="group in groups" :key="group.id">
-        <div class="related-content-category-header">{{ group.name }}</div>
+        <div class="related-content-category-header">{{ group.name ?? group.id }}</div>
 
         <div class="related-content" v-for="entry in group.entries" :key="entry.legacy_id">
           <!-- kind: "text" — the entry IS the bibliography. No link, no title,

@@ -10,7 +10,7 @@ import BackLink from '../components/BackLink.vue'
 import { sortChronological, useI18n } from '@metanull/viewer-core'
 import { RecordGrid } from '@metanull/viewer-layout/content'
 
-const { locale } = useI18n()
+const { t, locale } = useI18n()
 const gridRecords = useGridRecords()
 
 // Legacy's ThemeGallery: every record a theme touches, as one grid, with a
@@ -92,8 +92,8 @@ function onSubThemeChange(event) {
 
     <div id="theme-gallery-header">
       <span>
-        Theme {{ roman }} | <span class="bold">{{ title }}</span>
-        <span v-if="selectedSub" class="bold"> ▪ {{ selectedSub.title }}</span> | Gallery
+        {{ t('waterInIslam.theme.romanLabel') }} {{ roman }} | <span class="bold">{{ title }}</span>
+        <span v-if="selectedSub" class="bold"> ▪ {{ selectedSub.title }}</span> | {{ t('waterInIslam.theme.galleryLabel') }}
       </span>
     </div>
 
@@ -114,7 +114,7 @@ function onSubThemeChange(event) {
         </select>
         <div class="reset-container" v-if="subIndex">
           <button class="legacy-button" @click="router.push(`/theme-gallery/${route.params.id}`)">
-            See all Items in this Theme
+            {{ t('waterInIslam.theme.seeAllInTheme') }}
           </button>
         </div>
       </div>
