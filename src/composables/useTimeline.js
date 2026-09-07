@@ -178,6 +178,10 @@ export function timelineCountryName(countryId) {
  */
 export function countryIdForCode(code) {
   if (!code || code === 'all') return null
+  // Check if the input is already a country id present in countries.json
+  const countryIds = new Set(countries.value.map(c => c.id))
+  if (countryIds.has(code)) return code
+  // Legacy code lookup
   if (countryById.value.has(code)) return code
   const timeline = timelines.value.find(t => legacyCodeOf(t) === code)
   if (timeline) return timeline.country_id
