@@ -78,6 +78,8 @@ describe('website smoke test', () => {
   }, 30000)
 
   it('renders a theme on the composed essay view', async () => {
+    const [, , , themes] = await loadEntities(['exhibition', 'items', 'partners', 'themes'])
+    const theme = themes.find((t) => t.id === '1')
     const { app, host } = await mountSite('#/theme/1')
     await vi.waitFor(() => expect(host.querySelector('.mwnf-essay')).not.toBeNull(), { timeout: 20000 })
     expect(host.querySelector('.mwnf-essay').className).not.toContain('mwnf-essay--about')
@@ -86,6 +88,13 @@ describe('website smoke test', () => {
     expect(host.querySelector('.mwnf-essay__side')).not.toBeNull()
     expect(host.querySelector('.theme-component-selected-container, .theme-component-no-images')).not.toBeNull()
     expect(host.querySelector('.mwnf-essay__nav')).not.toBeNull()
+    // The view reads the theme texts through the tree's own entity, and a wrong
+    // entity renders internal names or nothing. viewer-core 1.12.1 exposes
+    // `tree.entity` and `tree.source` as strings.
+    const proseElement = host.querySelector('.mwnf-essay__prose, .mwnf-essay__body')
+    expect(proseElement?.textContent?.trim()).toBeTruthy()
+    const titleElement = host.querySelector('.mwnf-essay__title')
+    if (titleElement) expect(titleElement.textContent).not.toBe(theme.internal_name)
     app.unmount()
   }, 30000)
 
