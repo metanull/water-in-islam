@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { createViewer, loadEntities, mergeMessages } from '@metanull/viewer-core'
 import { checkOfferedLanguages } from '@metanull/viewer-core/testing'
 import { catalogues as sharedTexts } from '@metanull/viewer-i18n/exhibition'
@@ -10,8 +10,9 @@ import config from '../src/dataset.config.js'
 // nothing about the chrome — every text would render as its own name.
 const messages = mergeMessages(sharedTexts, { en: ownTexts })
 
-async function mountSite() {
-  window.location.hash = '#/'
+// Mounted on the address under test, as a visitor arrives from a link.
+async function mountSite(hash = '#/') {
+  window.location.hash = hash
   const app = createViewer({ ...config, messages })
   const host = document.createElement('div')
   document.body.appendChild(host)
@@ -34,6 +35,35 @@ describe('website smoke test', () => {
 
     app.unmount()
   }, 20000)
+
+  // The collection results and the item sheet run on the platform's composed
+  // views (metanull/viewer-core#50): the tiles, the dependent options and
+  // the pages come from the spec, the sheet's rows from the sheet spec, and
+  // what only this exhibition has — the panel in the aside, the
+  // related-content container — fills the views' slots.
+  it('renders the collection results on the composed results view', async () => {
+    const { app, host } = await mountSite('#/collection-results')
+    await vi.waitFor(() => expect(host.querySelector('.mwnf-grid__tile')).not.toBeNull(), { timeout: 20000 })
+    expect(host.querySelector('.mwnf-catalogue')).not.toBeNull()
+    expect(host.querySelector('.mwnf-catalogue__aside .mwnf-filter')).not.toBeNull()
+    expect(host.querySelector('.mwnf-summary__count')).not.toBeNull()
+    // Nine a page, two paginations.
+    expect(host.querySelectorAll('.mwnf-grid__tile').length).toBe(9)
+    expect(host.querySelectorAll('.mwnf-pagination').length).toBe(2)
+    app.unmount()
+  }, 60000)
+
+  it('renders the item sheet on the composed record view', async () => {
+    const [, items] = await loadEntities(['exhibition', 'items'])
+    const item = items.find((i) => i.project_key) ?? items[0]
+    const { app, host } = await mountSite(`#/item/${item.id}`)
+    await vi.waitFor(() => expect(host.querySelector('.mwnf-sheet__label')).not.toBeNull(), { timeout: 20000 })
+    expect(host.querySelector('.mwnf-record')).not.toBeNull()
+    expect(host.querySelector('.languages')).not.toBeNull()
+    expect(host.querySelector('.related-content-container')).not.toBeNull()
+    if (item.project_key) expect(host.querySelector('.source-reference').textContent).toContain(item.project_key)
+    app.unmount()
+  }, 60000)
 
   it('declares every canonical route by name, and every legacy shape as a redirect', () => {
     const names = config.extraViews.map((r) => r.name)

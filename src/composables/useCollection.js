@@ -1,6 +1,6 @@
 import { useI18n } from '@metanull/viewer-core'
 import {
-  countries, countryById, tagById, tags,
+  countries, countryById, itemById, tagById, tags,
   countryLabel, itemLabel, itemRoute, partnerLabel, tr, defaultLang, mdInline, projectName,
 } from './useExhibitionData.js'
 
@@ -58,10 +58,6 @@ export function countryIdForCode(code) {
   return code ? (countries.value ?? []).find((c) => c.code === code)?.id ?? null : null
 }
 
-export function tagIdForLegacy(legacyId) {
-  return legacyId ? (tags.value ?? []).find((t) => t.legacy_tag_id === legacyId)?.id ?? null : null
-}
-
 export function tagLabelForLegacy(legacyId) {
   return (tags.value ?? []).find((t) => t.legacy_tag_id === legacyId)?.label ?? legacyId
 }
@@ -92,11 +88,6 @@ export const FACETS = {
   ),
 }
 
-/** The legacy `/items` predicate's tag half: every requested tag, ANDed. */
-export function hasEveryTag(item, tagIds) {
-  return tagIds.every((id) => item.tag_ids?.includes(id))
-}
-
 // ── The search bar ─────────────────────────────────────────────────────────
 //
 // Legacy ran MySQL boolean full-text search over the English sheet; the
@@ -115,30 +106,82 @@ export function haystack(item, text) {
 // ── The tile ───────────────────────────────────────────────────────────────
 
 /**
- * Records as viewer-layout's grid contract: the thumbnail, the name, the
+ * A record as viewer-layout's grid contract: the thumbnail, the name, the
  * lines legacy's hover card carried (date, holder, place, source project).
  * The project name is this exhibition's own rule — the exhibition's title
  * for a native member, nothing for a record legacy left nameless — so the
  * line is dropped, not printed with a hole in it.
  */
+export function tile(item, t) {
+  const text = tr('items', item.id, defaultLang)
+  const project = projectName(item)
+  return {
+    id: item.id,
+    image: item.images?.[0]?.url ?? '',
+    imageAlt: itemLabel(item),
+    name: mdInline(text.name ?? item.internal_name ?? ''),
+    meta: [
+      text.dates ?? '',
+      partnerLabel(item.partner_id),
+      [text.location, countryLabel(item.country_id)].filter(Boolean).join(', '),
+      project ? `${t('catalogue.results.forProject')} ${project}` : '',
+    ].filter(Boolean),
+    to: itemRoute(item),
+  }
+}
+
+/** `tile` bound to the installed texts, for a page that lists records itself. */
 export function useGridRecords() {
   const { t } = useI18n()
-  return (list) =>
-    list.map((item) => {
-      const text = tr('items', item.id, defaultLang)
-      const project = projectName(item)
-      return {
-        id: item.id,
-        image: item.images?.[0]?.url ?? '',
-        imageAlt: itemLabel(item),
-        name: mdInline(text.name ?? item.internal_name ?? ''),
-        meta: [
-          text.dates ?? '',
-          partnerLabel(item.partner_id),
-          [text.location, countryLabel(item.country_id)].filter(Boolean).join(', '),
-          project ? `${t('catalogue.results.forProject')} ${project}` : '',
-        ].filter(Boolean),
-        to: itemRoute(item),
-      }
-    })
+  return (list) => list.map((item) => tile(item, t))
+}
+
+// ── The results page, as a spec ────────────────────────────────────────────
+//
+// What viewer-layout's `CatalogueResultsView` renders on
+// `/collection-results`: the facets over the *matching* records (the
+// dependent dropdowns above), the containment date rule, undated first, nine
+// tiles a page, legacy's "Collection | <selections>" summary line. The panel
+// itself is composed by the view's wrapper, in the aside where legacy put it,
+// so no controls are declared here. Every text is an entry name.
+
+const KEYS = ['country', ...FACET_CATEGORIES, 'start', 'end']
+
+/** The filter summary line legacy printed as "Collection | <selections>". */
+function filterSummary(filters, t) {
+  const parts = []
+  if (filters.country) parts.push(countryLabel(countryIdForCode(filters.country)))
+  for (const key of FACET_CATEGORIES) if (filters[key]) parts.push(tagLabelForLegacy(filters[key]))
+  if (filters.start) parts.push(`${t('catalogue.filter.from')} ${filters.start}`)
+  if (filters.end) parts.push(`${t('catalogue.filter.to')} ${filters.end}`)
+  return parts.filter(Boolean).join(' | ')
+}
+
+export const collectionResults = {
+  entity: 'items',
+  keys: KEYS,
+  facets: FACETS,
+  facetScope: 'matching',
+  filterMode: 'immediate',
+  // The engine reads the raw `items` entity; a per-language build ships every
+  // member's `languages` array but not every member's text in this language,
+  // and legacy 404s such a record (`itemById`'s own rule, in
+  // useExhibitionData.js). The results page must not offer what the sheet
+  // would refuse to open, so it is filtered to the same renderable subset.
+  scope: (item) => itemById.value.has(item.id),
+  dates: { mode: DATE_MODE, begin: 'start', end: 'end' },
+  sort: { undated: 'first' },
+  pageSize: PAGE_SIZE,
+  variant: 'grid',
+  recordRoute: 'item',
+  actionLabel: 'exhibition.action.seeDatabaseEntry',
+  empty: 'catalogue.results.noResults',
+  pagination: { jump: true },
+
+  record: (item, { t }) => tile(item, t),
+
+  summary: ({ filters, pageInfo, t }) => [
+    { label: t('exhibition.section.collection'), value: filterSummary(filters, t) },
+    { count: pageInfo.total, value: `${t('catalogue.results.outOf')} ${itemById.value.size} ${t('catalogue.results.objects')}` },
+  ],
 }
