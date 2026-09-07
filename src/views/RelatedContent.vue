@@ -17,14 +17,15 @@ const { t, locale } = useI18n()
 // The names below are that table's English rows, verbatim from the live API
 // (`exhibitionRelatedContents[*].categoryName`) — the same class of ported
 // legacy constant as the timeline's year-bucket algorithm, and recorded as a
-// package gap in README.md rather than pretended away. They live under this
-// site's own namespace for now and move to the shared dictionary once every
-// exhibition site carries them.
+// package gap in README.md rather than pretended away. Every exhibition site
+// carries the same four categories, so the names read from the shared
+// `exhibition.relatedCategory.*` dictionary rather than a copy of this site's
+// own.
 const CATEGORY_NAMES = computed(() => ({
-  1: t('waterInIslam.relatedCategory.furtherReading'),
-  2: t('waterInIslam.relatedCategory.mwnfContent'),
-  3: t('waterInIslam.relatedCategory.partnerContent'),
-  4: t('waterInIslam.relatedCategory.otherContent'),
+  1: t('exhibition.relatedCategory.furtherReading'),
+  2: t('exhibition.relatedCategory.mwnfContent'),
+  3: t('exhibition.relatedCategory.partnerContent'),
+  4: t('exhibition.relatedCategory.otherContent'),
 }))
 
 // Legacy's own display order for the four groups, which is the order its API
@@ -53,7 +54,7 @@ const groups = computed(() => {
   ]
   return ids.map(id => ({
     id,
-    name: CATEGORY_NAMES.value[id] ?? `${t('waterInIslam.relatedCategory.unknown')} ${id}`,
+    name: CATEGORY_NAMES.value[id] ?? `${t('exhibition.relatedCategory.unknown')} ${id}`,
     entries: [...byCategory.get(id)].sort(
       (a, b) => (a.display_order ?? 0) - (b.display_order ?? 0)
     ),
@@ -72,7 +73,7 @@ const groups = computed(() => {
            exhibition's `extra.further_readings` instead. An empty page would
            read as a rendering fault, so say it plainly if it ever happens. -->
       <p class="related-content-empty" v-if="!groups.length">
-        {{ $t('waterInIslam.related.notAvailable') }}
+        {{ $t('exhibition.related.notAvailable') }}
       </p>
 
       <div class="related-content-category" v-for="group in groups" :key="group.id">

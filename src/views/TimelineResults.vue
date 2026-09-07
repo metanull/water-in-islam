@@ -43,7 +43,7 @@ const page = usePagination(events, { page: currentPage, size: EVENTS_PER_PAGE })
 
 const countryName = computed(() =>
   timelineCountries.value.find(c => c[0] === String(route.query.c ?? 'all'))?.[1]
-    ?? t('exhibition.timeline.allCountries')
+    ?? t('timeline.form.allCountries')
 )
 
 // The exhibition's own chronology names each period itself ("ca. 50.000-30.000
@@ -86,9 +86,9 @@ const galleryItems = computed(() => {
     <div id="timeline-results-search-container">
       <p id="current-search">
         {{ $t('exhibition.section.timeline') }} |
-        {{ route.query.start ? era(Number(route.query.start)) : $t('exhibition.timeline.earliest') }}
-        {{ $t('exhibition.timeline.to') }}
-        {{ route.query.end ? era(Number(route.query.end)) : $t('exhibition.timeline.latest') }} |
+        {{ route.query.start ? era(Number(route.query.start)) : $t('timeline.form.earliest') }}
+        {{ $t('timeline.form.to') }}
+        {{ route.query.end ? era(Number(route.query.end)) : $t('timeline.form.latest') }} |
         <span v-if="!usesLocalTimeline">{{ countryName }} | </span>
         <span>{{ page.total }} {{ $t('catalogue.results.heading') }}</span>
       </p>
@@ -136,7 +136,7 @@ const galleryItems = computed(() => {
     <div id="timeline-results-container">
       <div id="labels-container" v-if="page.rows.length">
         <div id="date-label">{{ $t('exhibition.results.date') }}</div>
-        <div id="country-label">{{ usesLocalTimeline ? $t('sheet.field.description') : $t('exhibition.results.countryDescription') }}</div>
+        <div id="country-label">{{ usesLocalTimeline ? $t('sheet.field.description') : $t('timeline.results.countryDescription') }}</div>
       </div>
       <div v-if="page.rows.length">
         <div class="event-container" v-for="event in page.rows" :key="event.id">
@@ -147,7 +147,7 @@ const galleryItems = computed(() => {
           </div>
         </div>
       </div>
-      <div id="timeline-no-results" v-else>{{ $t('exhibition.timeline.noResults') }}</div>
+      <div id="timeline-no-results" v-else>{{ $t('timeline.results.noResults') }}</div>
     </div>
 
     <Pagination class="pages" :page-info="page" jump @navigate="goToPage" />

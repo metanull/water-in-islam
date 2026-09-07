@@ -1,7 +1,7 @@
 import { useI18n } from '@metanull/viewer-core'
 import {
   countries, countryById, itemById, tagById, tags,
-  countryLabel, itemLabel, itemRoute, partnerLabel, tr, defaultLang, mdInline, projectName,
+  itemRoute, labelOf, tr, defaultLang, mdInline, projectName,
 } from './useExhibitionData.js'
 
 // The catalogue spec: what this exhibition's lists filter and search on. The
@@ -70,7 +70,7 @@ export function tagLabelForLegacy(legacyId) {
 export const FACETS = {
   country: {
     values: (item) => countryById.value.get(item.country_id)?.code ?? null,
-    label: (code) => countryLabel(countryIdForCode(code)),
+    label: (code) => labelOf('countries', countryIdForCode(code)),
   },
   ...Object.fromEntries(
     FACET_CATEGORIES.map((category) => [
@@ -99,7 +99,7 @@ export function haystack(item, text) {
     text.location, text.provenance, text.alternate_name, text.place_of_production,
     ...(text.keywords ?? []), ...(text.materials ?? []),
     item.internal_name, item.owner_reference, item.mwnf_reference,
-    partnerLabel(item.partner_id), countryLabel(item.country_id),
+    labelOf('partners', item.partner_id), labelOf('countries', item.country_id),
   ]
 }
 
@@ -114,16 +114,16 @@ export function haystack(item, text) {
  */
 export function tile(item, t) {
   const text = tr('items', item.id, defaultLang)
-  const project = projectName(item)
+  const project = projectName(item, t)
   return {
     id: item.id,
     image: item.images?.[0]?.url ?? '',
-    imageAlt: itemLabel(item),
+    imageAlt: labelOf('items', item.id),
     name: mdInline(text.name ?? item.internal_name ?? ''),
     meta: [
       text.dates ?? '',
-      partnerLabel(item.partner_id),
-      [text.location, countryLabel(item.country_id)].filter(Boolean).join(', '),
+      labelOf('partners', item.partner_id),
+      [text.location, labelOf('countries', item.country_id)].filter(Boolean).join(', '),
       project ? `${t('catalogue.results.forProject')} ${project}` : '',
     ].filter(Boolean),
     to: itemRoute(item),
@@ -150,7 +150,7 @@ const KEYS = ['country', ...FACET_CATEGORIES, 'start', 'end']
 /** The filter summary line legacy printed as "Collection | <selections>". */
 function filterSummary(filters, t) {
   const parts = []
-  if (filters.country) parts.push(countryLabel(countryIdForCode(filters.country)))
+  if (filters.country) parts.push(labelOf('countries', countryIdForCode(filters.country)))
   for (const key of FACET_CATEGORIES) if (filters[key]) parts.push(tagLabelForLegacy(filters[key]))
   if (filters.start) parts.push(`${t('catalogue.filter.from')} ${filters.start}`)
   if (filters.end) parts.push(`${t('catalogue.filter.to')} ${filters.end}`)

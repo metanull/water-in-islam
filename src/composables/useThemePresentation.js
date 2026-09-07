@@ -1,5 +1,5 @@
 import {
-  itemById, itemLabel, partnerLabel, countryLabel, tr, defaultLang,
+  itemById, labelOf, tr, defaultLang,
   themePictures,
 } from './useExhibitionData.js'
 
@@ -24,9 +24,9 @@ export function itemDetailString(item) {
   if (!item) return ''
   const sheet = tr('items', item.id, defaultLang)
   return [
-    sheet.holder || partnerLabel(item.partner_id),
+    sheet.holder || labelOf('partners', item.partner_id),
     sheet.location,
-    countryLabel(item.country_id),
+    labelOf('countries', item.country_id),
   ].filter(Boolean).join(', ')
 }
 
@@ -34,7 +34,7 @@ export function itemDetailString(item) {
 export function pictureCaption(picture) {
   const parent = pictureParent(picture)
   if (!parent) return ''
-  return [itemLabel(parent), itemDetailString(parent)].filter(Boolean).join(', ')
+  return [labelOf('items', parent.id), itemDetailString(parent)].filter(Boolean).join(', ')
 }
 
 /** The cover picture of a theme, falling back to its first selection. */

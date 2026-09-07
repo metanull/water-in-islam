@@ -3,7 +3,7 @@ import { computed, ref, watch, onMounted } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import {
   themes, aboutTheme, themeByRouteId, themeRouteId, themeText, pictureText,
-  themePictures, itemRoute, itemLabel, tr, defaultLang, md, mdInline,
+  themePictures, itemRoute, labelOf, tr, defaultLang, md, mdInline,
   exhibitionTitle, exhibitionSubtitle,
 } from '../composables/useExhibitionData.js'
 import { pictureParent, itemDetailString } from '../composables/useThemePresentation.js'
@@ -174,7 +174,7 @@ function captionFor(picture) {
   const text = pictureText(node.value, picture, locale.value)
   return {
     imageCaption: text.image_caption ?? '',
-    name: parent ? itemLabel(parent) : '',
+    name: parent ? labelOf('items', parent.id) : '',
     detail: itemDetailString(parent),
     parent,
   }
@@ -323,7 +323,7 @@ const routeId = computed(() => themeRouteId(theme.value))
             <!-- Decision Q3: a picture whose parent is not a member of this
                  exhibition says so rather than linking nowhere. -->
             <div class="theme-component-selected-detail unresolved" v-else>
-              {{ $t('waterInIslam.theme.recordNotInExhibition') }}
+              {{ $t('exhibition.theme.recordNotInSite') }}
             </div>
           </div>
         </div>

@@ -5,7 +5,7 @@ import { NotFoundView, searchGlossary, useI18n, useSiteConfig } from '@metanull/
 import { RecordLanguages, RelatedRecords, SheetSection } from '@metanull/viewer-layout/content'
 import { RecordView } from '@metanull/viewer-layout/views'
 import {
-  partnerLabel, partnerById, partnerRoute, dynastyById, translations, defaultLang, md, itemById,
+  labelOf, partnerById, partnerRoute, dynastyById, translations, defaultLang, md, itemById,
   projectName as projectNameOf, projectFamily, isHiddenPartner,
 } from '../composables/useExhibitionData.js'
 import { findEvents, eraLabel, roundOutward, timelineCountries, countryIdForCode, hasTimeline } from '../composables/useTimeline.js'
@@ -132,7 +132,7 @@ function printSheet() {
              source line is dropped when legacy has no project name to print. -->
         <p class="source-reference" v-if="projectFamily(record)">
           <span class="project-chip" :class="`project-${projectFamily(record)}`">{{ record.project_key || projectFamily(record) }}</span>
-          <template v-if="projectNameOf(record)">{{ t('record.sheet.sourceDatabase') }}: {{ projectNameOf(record) }}</template>
+          <template v-if="projectNameOf(record, t)">{{ t('record.sheet.sourceDatabase') }}: {{ projectNameOf(record, t) }}</template>
         </p>
         <p class="source-uid"><code>{{ record.backward_compatibility }}</code></p>
         <p class="add-collection-link">
@@ -147,8 +147,8 @@ function printSheet() {
     <!-- E6: a hidden museum keeps its name on the sheet and loses the link,
          because it has no page to link to. -->
     <template #museum="{ record }">
-      <RouterLink v-if="!isHiddenPartner(partnerById.get(record.partner_id))" :to="partnerRoute(partnerById.get(record.partner_id))">{{ partnerLabel(record.partner_id) }}</RouterLink>
-      <span v-else>{{ partnerLabel(record.partner_id) }}</span>
+      <RouterLink v-if="!isHiddenPartner(partnerById.get(record.partner_id))" :to="partnerRoute(partnerById.get(record.partner_id))">{{ labelOf('partners', record.partner_id) }}</RouterLink>
+      <span v-else>{{ labelOf('partners', record.partner_id) }}</span>
     </template>
 
     <template #related="{ record, language, records, outside }">
@@ -183,21 +183,21 @@ function printSheet() {
             <div class="popout-close" @click="openPopup = null">✕</div>
             <div class="popout-title">{{ $t('exhibition.section.timeline') }}</div>
             <div class="popout-option">
-              <label>{{ $t('exhibition.timeline.searchIntro') }}</label>
+              <label>{{ $t('timeline.form.searchIntro') }}</label>
               <select v-model="timelineCountry">
                 <option v-for="c in timelineCountries" :key="c[0]" :value="c[0]">{{ c[1] }}</option>
               </select>
               <RouterLink
                 class="popout-full-link"
                 :to="{ name: 'timeline-results', query: { c: timelineCountry, start: itemRange[0], end: itemRange[1] } }"
-              >➤ {{ $t('exhibition.timeline.beginFullSearch') }}</RouterLink>
+              >➤ {{ $t('timeline.action.beginFullSearch') }}</RouterLink>
             </div>
             <div class="popout-scroll">
               <div class="popout-subheader">
                 {{ timelineCountries.find(c => c[0] === timelineCountry)?.[1] }},
                 {{ era(itemRange[0]) }} – {{ era(itemRange[1]) }}
               </div>
-              <div v-if="!itemEvents.length" class="popout-empty">{{ $t('exhibition.timeline.noEvents') }}</div>
+              <div v-if="!itemEvents.length" class="popout-empty">{{ $t('timeline.results.noEvents') }}</div>
               <div class="timeline-event" v-for="event in itemEvents" :key="event.id">
                 <div class="timeline-date">{{ era(event.year_from) }}</div>
                 <div v-html="md(event.text.description)"></div>
@@ -208,7 +208,7 @@ function printSheet() {
 
         <!-- Glossary tool -->
         <div>
-          <p class="related-line clickable" @click="togglePopup('glossaryTool')">➤ {{ t('record.glossary.heading') }}</p>
+          <p class="related-line clickable" @click="togglePopup('glossaryTool')">➤ {{ t('record.glossary.tool') }}</p>
           <div class="popout" v-if="openPopup === 'glossaryTool'">
             <div class="popout-close" @click="openPopup = null">✕</div>
             <div class="popout-title">{{ t('record.glossary.heading') }}</div>
@@ -226,12 +226,12 @@ function printSheet() {
 
         <!-- Dynasties -->
         <div v-if="dynastyEntries(record, language).length">
-          <p class="related-sub">{{ t('exhibition.nav.islamicDynasties') }}</p>
+          <p class="related-sub">{{ t('record.dynasty.list') }}</p>
           <div v-for="dynasty in dynastyEntries(record, language)" :key="dynasty.id">
             <p class="related-line clickable" @click="togglePopup(`dynasty:${dynasty.id}`)">➤ {{ dynasty.name }}</p>
             <div class="popout" v-if="openPopup === `dynasty:${dynasty.id}`">
               <div class="popout-close" @click="openPopup = null">✕</div>
-              <div class="popout-title">{{ t('exhibition.nav.dynastiesHeading') }}</div>
+              <div class="popout-title">{{ t('record.dynasty.heading') }}</div>
               <div class="popout-scroll">
                 <div class="dynasty-name">{{ dynasty.name }}</div>
                 <p v-if="dynasty.also_known_as">{{ dynasty.also_known_as }}</p>

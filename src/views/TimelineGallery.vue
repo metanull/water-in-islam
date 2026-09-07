@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
 import { dateRange, eraLabel, sortChronological, useI18n, useListQuery, usePagination } from '@metanull/viewer-core'
 import { Pagination, RecordGrid } from '@metanull/viewer-layout/content'
-import { items, countryLabel } from '../composables/useExhibitionData.js'
+import { items, labelOf } from '../composables/useExhibitionData.js'
 import { PAGE_SIZE, useGridRecords } from '../composables/useCollection.js'
 import { countryIdForCode } from '../composables/useTimeline.js'
 import BackLink from '../components/BackLink.vue'
@@ -41,18 +41,18 @@ const rows = computed(() => gridRecords(pageInfo.value.rows))
 
     <div id="gallery-header">
       <p>
-        {{ $t('exhibition.timeline.galleryHeading') }} |
-        <span>{{ countryId ? countryLabel(countryId) : $t('exhibition.timeline.allCountries') }}</span>
+        {{ $t('timeline.results.galleryHeading') }} |
+        <span>{{ countryId ? labelOf('countries', countryId) : $t('timeline.form.allCountries') }}</span>
         <span v-if="start != null || end != null">
-          | {{ start != null ? era(start) : $t('exhibition.timeline.earliest') }}
-          {{ $t('exhibition.timeline.to') }}
-          {{ end != null ? era(end) : $t('exhibition.timeline.latest') }}
+          | {{ start != null ? era(start) : $t('timeline.form.earliest') }}
+          {{ $t('timeline.form.to') }}
+          {{ end != null ? era(end) : $t('timeline.form.latest') }}
         </span>
       </p>
       <p>{{ pageInfo.total }} {{ $t('catalogue.results.objects') }}</p>
       <p class="back-to-events">
         <RouterLink :to="{ name: 'timeline-results', query: { c: filters.country || 'all', start: filters.start, end: filters.end } }">
-          ➤ {{ $t('exhibition.timeline.backToEvents') }}
+          ➤ {{ $t('timeline.nav.backToEvents') }}
         </RouterLink>
       </p>
     </div>

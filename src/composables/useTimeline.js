@@ -1,7 +1,7 @@
 import { computed } from 'vue'
 import { eraLabel, roundOutward, yearBucketsFromRange } from '@metanull/viewer-core'
 import {
-  exhibition, timelines, timelineEvents, countries, countryById, countryLabel,
+  exhibition, timelines, timelineEvents, countries, countryById, labelOf,
   tr, defaultLang,
 } from './useExhibitionData.js'
 
@@ -125,7 +125,7 @@ function legacyCodeOf(timeline) {
 
 function nameFor(timeline) {
   const fromPackage = countries.value.some(c => c.id === timeline.country_id)
-    ? countryLabel(timeline.country_id)
+    ? labelOf('countries', timeline.country_id)
     : null
   if (fromPackage) return fromPackage
   const legacy = legacyCodeOf(timeline)
@@ -159,7 +159,7 @@ export const timelineCountries = computed(() => {
 
 /** Display name for an event's country. */
 export function timelineCountryName(countryId) {
-  if (countries.value.some(c => c.id === countryId)) return countryLabel(countryId)
+  if (countries.value.some(c => c.id === countryId)) return labelOf('countries', countryId)
   const timeline = timelines.value.find(t => t.country_id === countryId)
   return timeline ? nameFor(timeline) : countryId
 }
