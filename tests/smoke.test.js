@@ -105,6 +105,54 @@ describe('website smoke test', () => {
     app.unmount()
   }, 30000)
 
+  // The timeline entrance, results and gallery run on viewer-layout's
+  // composed views (metanull/water-in-islam#33): `timelineSpec` drives the
+  // form/results shape, `timelineGallerySpec` the country/period join.
+  it('renders the timeline entrance on the composed timeline view, as a form', async () => {
+    const { app, host } = await mountSite('#/timeline')
+    await vi.waitFor(() => expect(host.querySelector('.mwnf-timeline')).not.toBeNull(), { timeout: 20000 })
+    expect(host.querySelector('.mwnf-timeline__filters')).not.toBeNull()
+    // The entrance renders the form alone — no results row, no summary.
+    expect(host.querySelector('.mwnf-timeline__row')).toBeNull()
+    expect(host.querySelector('.mwnf-summary')).toBeNull()
+    expect(host.textContent).toContain('Have you already been at')
+    app.unmount()
+  }, 30000)
+
+  it('renders the timeline results on the composed timeline view', async () => {
+    const { app, host } = await mountSite('#/timeline-results')
+    await vi.waitFor(() => expect(host.querySelector('.mwnf-summary')).not.toBeNull(), { timeout: 20000 })
+    expect(host.querySelector('.mwnf-timeline')).not.toBeNull()
+    // "Events found" is the default summary label — this exhibition supplies
+    // no summary of its own.
+    expect(host.textContent).toContain('Events found')
+    app.unmount()
+  }, 30000)
+
+  it('offers "See Gallery" from the timeline results when the period has objects', async () => {
+    const [, items] = await loadEntities(['exhibition', 'items'])
+    const dated = items.find((i) => Number.isFinite(i.start_date) && i.country_id)
+    const { app, host } = await mountSite(
+      `#/timeline-results?country=${dated.country_id}&begin=${dated.start_date}&end=${dated.end_date ?? dated.start_date}`,
+    )
+    await vi.waitFor(() => expect(host.querySelector('.mwnf-timeline__gallery')).not.toBeNull(), { timeout: 20000 })
+    expect(host.querySelector('.mwnf-timeline__gallery').textContent).toContain('See Gallery')
+    app.unmount()
+  }, 30000)
+
+  it('renders the timeline gallery on the composed results view', async () => {
+    const [, items] = await loadEntities(['exhibition', 'items'])
+    const dated = items.find((i) => Number.isFinite(i.start_date) && i.country_id)
+    const { app, host } = await mountSite(
+      `#/timeline/gallery?country=${dated.country_id}&begin=${dated.start_date}&end=${dated.end_date ?? dated.start_date}`,
+    )
+    await vi.waitFor(() => expect(host.querySelector('.mwnf-catalogue')).not.toBeNull(), { timeout: 20000 })
+    // The item that seeded the query overlaps its own period, so the grid is
+    // never empty here.
+    expect(host.querySelector('.mwnf-grid__tile')).not.toBeNull()
+    app.unmount()
+  }, 30000)
+
   it('renders the related content on the composed link list', async () => {
     const { app, host } = await mountSite('#/related')
     await vi.waitFor(() => expect(host.querySelector('.mwnf-link-list')).not.toBeNull(), { timeout: 20000 })
@@ -206,6 +254,13 @@ describe('website smoke test', () => {
     expect(galleryFor.resolve({ country: 'uk', start: 'any', end: '1500', page: '2' })).toEqual({
       name: 'timeline-gallery',
       query: { country: 'uk', end: '1500', page: '2' },
+    })
+    // The path's own `start` becomes `begin` in the query: viewer-layout's
+    // `TimelineResultsView` renders its date control under that key, and the
+    // gallery spec reads the same one, so both routes stay one shape.
+    expect(galleryFor.resolve({ country: 'uk', start: '1200', end: 'any', page: '1' })).toEqual({
+      name: 'timeline-gallery',
+      query: { country: 'uk', begin: '1200' },
     })
   }, 20000)
 
