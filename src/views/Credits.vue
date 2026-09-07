@@ -1,6 +1,6 @@
 <script setup>
 import { I18nText } from '@metanull/viewer-core'
-import BackLink from '../components/BackLink.vue'
+import { BackLink } from '@metanull/viewer-layout/content'
 
 // The credits name this exhibition's own curators, authors and photographers,
 // so there is nothing generic to inherit and the entry is this website's own.

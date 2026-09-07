@@ -2,10 +2,9 @@
 import { computed, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useI18n, useKeywordIndex, useListQuery, usePagination } from '@metanull/viewer-core'
-import { Pagination, RecordGrid, ResultsSummary } from '@metanull/viewer-layout/content'
+import { BackLink, Pagination, RecordGrid, ResultsSummary } from '@metanull/viewer-layout/content'
 import { items, loadEnglish } from '../composables/useExhibitionData.js'
 import { PAGE_SIZE, haystack, useGridRecords } from '../composables/useCollection.js'
-import BackLink from '../components/BackLink.vue'
 
 // The header search bar's results. Legacy ran MySQL boolean full-text search
 // server-side; viewer-core runs the same operator grammar over a client-side

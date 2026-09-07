@@ -3,12 +3,12 @@ import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from '@metanull/viewer-core'
 import { CatalogueResultsView } from '@metanull/viewer-layout/views'
+import { BackLink } from '@metanull/viewer-layout/content'
 import {
   pictureById, romanFor, themeByRouteId, themeText, themeTree,
 } from '../composables/themes.js'
 import { pictureParent } from '../composables/useThemePresentation.js'
 import { tile } from '../composables/useCollection.js'
-import BackLink from '../components/BackLink.vue'
 
 const route = useRoute()
 const { t, locale } = useI18n()

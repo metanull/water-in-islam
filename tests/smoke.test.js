@@ -4,6 +4,7 @@ import { checkOfferedLanguages } from '@metanull/viewer-core/testing'
 import { catalogues as sharedTexts } from '@metanull/viewer-i18n/exhibition'
 import ownTexts from '../locales/en.json'
 import config from '../src/dataset.config.js'
+import partnerNamesEn from '@metanull/water-in-islam-data/translations/partners.en.json'
 
 // The same two layers main.js assembles, in the same order: the shared bundle
 // first, this exhibition's own file last. Mounting without them would prove
@@ -64,6 +65,52 @@ describe('website smoke test', () => {
     if (item.project_key) expect(host.querySelector('.source-reference').textContent).toContain(item.project_key)
     app.unmount()
   }, 60000)
+
+  // The partner pages run on the platform's composed views
+  // (metanull/water-in-islam#34): the country grouping and the A-Z toggle are
+  // `PartnerListView`'s, the tab strip and the map are this exhibition's own
+  // header/before-sheet slots (partnerSpecs.js), and the objects grid is the
+  // composed results view scoped to one partner (PartnerObjects.vue).
+  it('renders the partners list on the composed list view', async () => {
+    const [exhibition, partners] = await loadEntities(['exhibition', 'partners'])
+    const hidden = new Set(exhibition.hidden_partner_ids ?? [])
+    const partner = partners.find((p) => !hidden.has(p.id) && partnerNamesEn[p.id]?.name)
+    const { app, host } = await mountSite('#/partners')
+    await vi.waitFor(() => expect(host.querySelector('.mwnf-partner-list')).not.toBeNull(), { timeout: 20000 })
+    // Country groups, every one open (`variant: 'open'`), and the A-Z / Z-A
+    // toggle (`orderToggle: true`) — both from partnerListSpec.
+    expect(host.querySelectorAll('.mwnf-partner-list__group-heading').length).toBeGreaterThan(0)
+    expect(host.querySelector('.mwnf-partner-list__toggle-button')).not.toBeNull()
+    // A row's name is the real translation, not a placeholder or a bare entry.
+    expect(host.textContent).toContain(partnerNamesEn[partner.id].name)
+    app.unmount()
+  }, 30000)
+
+  it('renders a partner profile on the composed record view', async () => {
+    const [exhibition, partners] = await loadEntities(['exhibition', 'partners'])
+    const hidden = new Set(exhibition.hidden_partner_ids ?? [])
+    const partner = partners.find((p) => !hidden.has(p.id) && p.type !== 'institution' && partnerNamesEn[p.id]?.name)
+    const { app, host } = await mountSite(`#/partner/${partner.id}`)
+    await vi.waitFor(() => expect(host.querySelector('.mwnf-record')).not.toBeNull(), { timeout: 20000 })
+    expect(host.textContent).toContain(partnerNamesEn[partner.id].name)
+    // The Description/Contact/Logo tab strip and the OpenStreetMap embed are
+    // this page's own slots — no local language switcher or lightbox remains.
+    expect(host.querySelector('#partner-links')).not.toBeNull()
+    expect(host.querySelector('.mwnf-partner-map')).not.toBeNull()
+    app.unmount()
+  }, 30000)
+
+  it('renders a partner objects page on the composed results view', async () => {
+    const [exhibition, partners] = await loadEntities(['exhibition', 'partners'])
+    const hidden = new Set(exhibition.hidden_partner_ids ?? [])
+    const partner = partners.find((p) => !hidden.has(p.id) && p.item_count > 0)
+    const { app, host } = await mountSite(`#/partner/${partner.id}/objects`)
+    await vi.waitFor(() => expect(host.querySelector('.mwnf-grid__tile')).not.toBeNull(), { timeout: 20000 })
+    expect(host.querySelector('.mwnf-catalogue')).not.toBeNull()
+    // The header names the partner this page scopes the grid to.
+    expect(host.textContent).toContain(partnerNamesEn[partner.id]?.name ?? partner.id)
+    app.unmount()
+  }, 30000)
 
   // The five theme-family pages run on composed views (metanull/water-in-islam#32):
   // the accordion, the essay, the results grid and the link list are the
