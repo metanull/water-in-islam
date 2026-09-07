@@ -14,7 +14,7 @@
     "namespace": "waterInIslam"
   },
   "dependencies": {
-    "@metanull/viewer-core": "^1.10.0",
+    "@metanull/viewer-core": "^1.12.1",
     "@metanull/viewer-i18n": "^2.3.0",
     "@metanull/viewer-layout": "^2.6.0",
     "@metanull/water-in-islam-data": "^1.0.7",
