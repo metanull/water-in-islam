@@ -194,10 +194,13 @@ export default {
       },
     },
     {
+      // `begin`/`end`, not the path's own `start`/`end`: viewer-layout's
+      // `TimelineResultsView` renders its date controls under those keys, and
+      // the gallery spec reads the same ones for the query to stay one shape.
       path: '/timeline-gallery/:country/:start/:end/:page',
       resolve({ country, start, end, page }) {
         const query = { country }
-        if (start !== 'any') query.start = start
+        if (start !== 'any') query.begin = start
         if (end !== 'any') query.end = end
         if (Number(page) > 1) query.page = page
         return { name: 'timeline-gallery', query }
