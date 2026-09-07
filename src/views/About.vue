@@ -3,7 +3,10 @@ import Theme from './Theme.vue'
 
 // Legacy's AboutPage is a one-line wrapper around ThemeComponent: /about is the
 // About theme (display order 1) rendered with the exhibition's own title and
-// sub-title standing in for the theme's.
+// sub-title standing in for the theme's. Kept exactly that shape on top of
+// the EssayView migration — Theme.vue's `about-mode` prop already carries the
+// heading override and drops the picture apparatus (`themeSpecs.js`'s
+// `aboutSpec`), so there is nothing left for this file to add.
 //
 // It is NOT `exhibition.json.abouts` — that field carries `exhibition_i18n.about`
 // and is empty for this exhibition, exactly as the live API's `exhibitionAbout`

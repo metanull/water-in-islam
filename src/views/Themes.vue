@@ -1,118 +1,44 @@
 <script setup>
-import { ref, computed } from 'vue'
-import { RouterLink } from 'vue-router'
-import {
-  listedThemes, themeText, themeRouteId, romanFor, mdStrip,
-} from '../composables/useExhibitionData.js'
-import { themeCover, pictureCaption, truncate } from '../composables/useThemePresentation.js'
+import { computed } from 'vue'
 import { useI18n } from '@metanull/viewer-core'
+import { SectionCards } from '@metanull/viewer-layout/content'
+import { listedThemes, romanFor, themeText } from '../composables/themes.js'
+import { themeNodeRoute } from '../composables/themeSpecs.js'
 
 const { t, locale } = useI18n()
 
-// Legacy's ThemesPage: an accordion of the exhibition's top-level themes, each
-// collapsed to a strip of four crops of its cover and expanded to cover +
-// caption, a 250-character extract of the presentation, the sub-theme list and
-// a link into the theme's gallery.
+// Legacy's ThemesPage — an accordion of the exhibition's own themes, one card
+// a theme, each numbered in Roman and opening onto its sub-themes — now
+// viewer-layout's SectionCards `accordion` variant. That variant renders only
+// a number, a title and a list of child links: no image, no description and
+// no per-card action beyond the children (see the package's README.md), so
+// the cover crop, the 250-character presentation excerpt and the direct
+// "see gallery for Theme N" link legacy showed here are dropped rather than
+// approximated. 'Overview' is added as the children's own first entry — the
+// card itself carries no link of its own in this variant — so every theme
+// stays reachable from this page whether or not it has sub-themes.
 //
-// It starts at index 1 of the API's `?bt=1` response, skipping the About theme
-// — `listedThemes` is that same set, selected by display order rather than by
-// array position.
-const themes = computed(() =>
-  listedThemes.value.map(theme => {
-    const cover = themeCover(theme)
-    const text = themeText(theme, locale.value)
-    return {
-      theme,
-      routeId: themeRouteId(theme),
-      roman: romanFor(theme.display_order),
-      title: text.title ?? theme.internal_name ?? '',
-      presentation: truncate(250, mdStrip(text.presentation ?? '')),
-      coverUrl: cover?.image_url ?? null,
-      coverCaption: cover ? pictureCaption(cover) : '',
-      subThemes: (theme.sub_themes ?? []).map(sub => ({
-        id: sub.id,
+// It starts at display order 2 — `listedThemes` skips the About theme, which
+// legacy renders at /about instead.
+const cards = computed(() =>
+  listedThemes.value.map((theme) => ({
+    title: themeText(theme, locale.value).title ?? theme.internal_name ?? '',
+    number: romanFor(theme.display_order),
+    children: [
+      { title: t('exhibition.theme.overview'), to: themeNodeRoute(theme) },
+      ...(theme.sub_themes ?? []).map((sub) => ({
         title: themeText(sub, locale.value).title ?? sub.internal_name ?? '',
+        to: themeNodeRoute(sub),
       })),
-    }
-  })
+    ],
+  })),
 )
-
-// Legacy keeps one theme open at a time, plus a "show all" toggle that expands
-// every theme and disables the per-theme click.
-const showAll = ref(false)
-const openIndex = ref(null)
-
-function toggle(index) {
-  if (showAll.value) return
-  openIndex.value = openIndex.value === index ? null : index
-}
-
-function isOpen(index) {
-  return showAll.value || openIndex.value === index
-}
 </script>
 
 <template>
   <div id="themes-wrapper">
     <div id="themes-container">
-      <div class="theme-show-all" @click="showAll = !showAll; openIndex = null">
-        <span>{{ showAll ? t('exhibition.theme.collapseAll') : t('exhibition.theme.expandAll') }}</span>
-      </div>
-
-      <div class="theme-container" v-for="(entry, index) in themes" :key="entry.theme.id">
-        <div
-          class="theme-title"
-          :class="{ 'theme-title-no-cursor': showAll }"
-          @click="toggle(index)"
-        >
-          <span>
-            {{ $t('exhibition.theme.romanLabel') }} {{ entry.roman }} ▪ {{ entry.title }}
-            <span v-if="!showAll" aria-hidden="true">{{ isOpen(index) ? '▴' : '▾' }}</span>
-          </span>
-        </div>
-
-        <!-- Collapsed: legacy shows the same cover four times, cropped to a
-             different band of the image in each slot. -->
-        <div class="theme-collapsed-thumbnail" v-if="!isOpen(index) && entry.coverUrl">
-          <img v-for="n in 4" :key="n" :src="entry.coverUrl" :alt="entry.coverCaption" loading="lazy" />
-        </div>
-
-        <div class="theme-image-information-wrapper" v-if="isOpen(index)">
-          <div class="theme-image">
-            <img v-if="entry.coverUrl" :src="entry.coverUrl" :alt="entry.coverCaption" loading="lazy" />
-            <div class="theme-image-caption" v-if="entry.coverCaption">{{ entry.coverCaption }}</div>
-          </div>
-
-          <div class="theme-information-container">
-            <div class="theme-description">
-              <span>{{ entry.presentation }}</span>
-              <RouterLink
-                class="theme-list-overview theme-list-link"
-                :to="`/theme/${entry.routeId}/overview`"
-              >{{ $t('exhibition.action.seeMore') }}</RouterLink>
-            </div>
-
-            <div class="theme-subthemes-container" v-if="entry.subThemes.length">
-              <div class="theme-subthemes-header">{{ $t('exhibition.theme.inThisTheme') }}</div>
-              <div
-                v-for="(sub, subIndex) in entry.subThemes"
-                :key="sub.id"
-                class="theme-list-subthemes"
-              >
-                <RouterLink class="theme-list-link" :to="`/theme/${entry.routeId}/${subIndex + 1}`">
-                  {{ subIndex + 1 }}. {{ sub.title }}
-                </RouterLink>
-              </div>
-            </div>
-
-            <div class="theme-gallery-link">
-              <RouterLink :to="`/theme-gallery/${entry.routeId}`">
-                {{ $t('exhibition.theme.seeGalleryFor') }} {{ entry.roman }}
-              </RouterLink>
-            </div>
-          </div>
-        </div>
-      </div>
+      <SectionCards :cards="cards" variant="accordion" />
     </div>
   </div>
 </template>
@@ -140,110 +66,15 @@ function isOpen(index) {
 #themes-container {
   position: relative;
   z-index: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
   width: 95%;
   padding: 30px 50px 50px;
 }
-
-.theme-show-all {
-  display: flex;
-  justify-content: flex-end;
-  width: 100%;
-  padding: 0 20px 10px;
-  color: var(--secondary-text-color);
-  cursor: pointer;
-}
-
-.theme-container {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  width: 100%;
-  padding: 20px;
-  margin-bottom: 10px;
-}
-
-.theme-title {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  padding: 10px;
-  font-size: 20px;
-  font-weight: 700;
-  text-align: center;
-  background: var(--contrast-color);
-  cursor: pointer;
-}
-.theme-title span { color: var(--contrast-text-color); }
-.theme-title-no-cursor { cursor: default; }
-
-.theme-collapsed-thumbnail {
-  display: flex;
-  height: 70px;
-  width: 100%;
-  background: var(--secondary-color);
-}
-.theme-collapsed-thumbnail img { width: 25%; object-fit: cover; }
-.theme-collapsed-thumbnail img:nth-child(1) { object-position: top; }
-.theme-collapsed-thumbnail img:nth-child(2) { object-position: 50% 25%; }
-.theme-collapsed-thumbnail img:nth-child(3) { object-position: 50% 50%; }
-.theme-collapsed-thumbnail img:nth-child(4) { object-position: bottom; }
-
-.theme-image-information-wrapper { display: flex; width: 100%; }
-.theme-image {
-  display: flex;
-  flex-direction: column;
-  max-height: 420px;
-  width: 50%;
-  padding-right: 30px;
-  margin-top: 30px;
-}
-.theme-image img { width: 100%; object-fit: cover; max-height: 380px; }
-.theme-image-caption {
-  padding: 5px 0;
-  color: var(--main-text-color);
-  font-style: italic;
-}
-
-.theme-information-container {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  color: var(--secondary-text-color);
-}
-.theme-description,
-.theme-subthemes-container { margin: 30px 30px 0; }
-.theme-subthemes-header { font-weight: 700; }
-.theme-list-link { color: var(--contrast-text-color); text-decoration: none; }
-.theme-list-overview { font-weight: 700; text-decoration: underline; margin-left: 6px; }
-.theme-list-link:hover { background: var(--contrast-color); }
-.theme-gallery-link {
-  margin: 30px 30px 0;
-  font-style: italic;
-}
-.theme-gallery-link a { color: var(--secondary-text-color); text-decoration: none; }
-.theme-gallery-link a:hover { background: var(--contrast-color); }
 
 @media only screen and (max-width: 1199px) {
   #themes-container { width: 100%; padding: 30px; }
 }
 
-@media only screen and (max-width: 899px) {
-  .theme-collapsed-thumbnail img { width: 50%; }
-  .theme-collapsed-thumbnail img:nth-child(2) { object-position: 50% 50%; }
-  .theme-collapsed-thumbnail img:nth-child(3),
-  .theme-collapsed-thumbnail img:nth-child(4) { display: none; }
-}
-
 @media only screen and (max-width: 649px) {
   #themes-wrapper::before { background: transparent; }
-  .theme-image-information-wrapper { flex-direction: column; }
-  .theme-image { width: 100%; padding: 20px 0; margin: 0; background: var(--main-color); }
-  .theme-description,
-  .theme-subthemes-container,
-  .theme-gallery-link { margin: 20px 0 0; }
 }
 </style>
