@@ -1,212 +1,94 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
-import { useRoute, RouterLink } from 'vue-router'
+import { RouterLink } from 'vue-router'
+import { NotFoundView, searchGlossary, useI18n, useSiteConfig } from '@metanull/viewer-core'
+import { RecordLanguages, RelatedRecords, SheetSection } from '@metanull/viewer-layout/content'
+import { RecordView } from '@metanull/viewer-layout/views'
 import {
-  NotFoundView, citation, languageLabels, searchGlossary, sheetRows, useGlossaryPopup, useI18n,
-  useRecordSheet, useRelatedRecords, useSiteConfig,
-} from '@metanull/viewer-core'
-import {
-  GlossaryPopover, MediaGallery, RecordCredits, RecordLanguages, RecordSheet, RelatedRecords, SheetSection,
-} from '@metanull/viewer-layout/content'
-import {
-  itemRoute, itemLabel, partnerLabel, countryLabel, partnerById, partnerRoute, dynastyById, tr, translations,
-  defaultLang, md, mdInline, mdStrip, itemById, projectName as projectNameOf, projectFamily, isHiddenPartner,
+  partnerLabel, partnerById, partnerRoute, dynastyById, translations, defaultLang, md, itemById,
+  projectName as projectNameOf, projectFamily, isHiddenPartner,
 } from '../composables/useExhibitionData.js'
 import { findEvents, eraLabel, roundOutward, timelineCountries, countryIdForCode, hasTimeline } from '../composables/useTimeline.js'
+import { itemSheet } from '../composables/sheet.js'
 import BackLink from '../components/BackLink.vue'
 
-// The item sheet. The mechanics — which language the record is read in, what
-// is loaded for it, the glossary terms it reaches, how a field becomes a row,
-// the credits, the related records — are viewer-core's, and the rows, the
-// gallery, the popover are viewer-layout's. What this page owns is the field
-// specification (legacy DatabaseItem.vue's `objectData`, field for field) and
-// the blocks only an exhibition has: the source database by project family,
-// the portal links, the timeline tool behind the `hasTimeline` gate, the
-// glossary tool, the dynasty popouts, the cross-references to sibling sites,
-// the print action.
+// The item sheet is the platform's composed record page, rendering the spec
+// in composables/sheet.js: the record's language and loads, the glossary
+// terms and the click on one, the rows, the gallery, the credits, the
+// citation and the related records are the view's. What this page owns
+// fills the view's slots — the blocks only an exhibition has: the source
+// database by project family, the portal links, the timeline tool behind the
+// `hasTimeline` gate, the glossary tool, the dynasty popouts, the
+// cross-references to sibling sites, and the print action.
+//
+// A per-language build ships every member's `languages` array but not every
+// member's text in this language (`itemById`'s own rule, in
+// useExhibitionData.js), and RecordView resolves its record from the whole
+// package regardless of language. The gate below reproduces legacy's 404 for
+// an id this build cannot render, which RecordView on its own does not.
 
-const route = useRoute()
+const props = defineProps({ id: { type: String, required: true } })
+
 const { t } = useI18n()
 const { links } = useSiteConfig()
 
-const item = computed(() => itemById.value.get(route.params.id) ?? null)
+const item = computed(() => itemById.value.get(props.id) ?? null)
 const era = (year) => eraLabel(year, t)
-
-// ── Language, loads, glossary ─────────────────────────────────────────────
-//
-// Attribution names are language-independent, but the importer files
-// `author` / `copy_editor` for EPM records on the Arabic row only (a known
-// gap, recorded in the exporter's README). Legacy printed them on every
-// sheet, so the platform reads them off another row when the active one has
-// neither — the one place a page reads across languages, and only for
-// proper names.
-const {
-  language: lang, languages: recordLanguages, dir, select, text: sheet, ready, terms, glossary, attribution,
-} = useRecordSheet(item, {
-  entity: 'items',
-  translations: ['glossary', 'dynasties', 'partners'],
-  attribution: ['author', 'copy_editor'],
-})
-
-const languageEntries = computed(() => languageLabels(recordLanguages.value))
-const languageNameList = computed(() => languageEntries.value.map((l) => l.label).join(', '))
-
-const { active: openTerm, onClick: onGlossaryClick, close: closeTerm } = useGlossaryPopup(terms)
-const openTermHtml = computed(() => (openTerm.value ? md(openTerm.value.definition) : ''))
-
-const partner = computed(() => (item.value ? partnerById.value.get(item.value.partner_id) : null))
-
-// ── The field specification ───────────────────────────────────────────────
-//
-// Order and labels are the legacy sheet's, field for field. Empty values are
-// dropped by the engine, as legacy's `filterData` did. `notice` and
-// `notice_c` were never imported; `notice_b` is the image rights statement,
-// imported as `extra.copyright` and rendered as the last row, where legacy
-// put its own block. The labels are in the language the visitor reads the
-// website in — where it differs from the record's (a deep link into a
-// borrowed record in a language this exhibition does not offer) they fall
-// back to English, which is where legacy pinned them anyway.
-//
-// Legacy shows both descriptions when both exist, with the short one
-// collapsed behind a toggle; when only one exists it is relabelled plain
-// "Description". EPM records are the common case of the latter.
-
-const bothDescriptions = computed(() => Boolean(sheet.value.description) && Boolean(sheet.value.short_description))
-const dynastyNames = computed(() =>
-  (item.value?.dynasty_ids ?? [])
-    .map((id) => translations('dynasties', lang.value)[id]?.name ?? translations('dynasties', defaultLang)[id]?.name ?? '')
-    .filter(Boolean)
-    .join(', '),
-)
-
-const spec = computed(() => [
-  { key: 'name', label: t('sheet.field.name'), value: 'name' },
-  { key: 'aka', label: t('sheet.field.alsoKnownAs'), value: 'alternate_name' },
-  { key: 'location', label: t('sheet.field.location'), value: (c) => [c.text.location, countryLabel(c.record.country_id)].filter(Boolean).join(', ') },
-  { key: 'museum', label: t('sheet.field.holdingMuseum'), value: () => (partner.value ? partner.value.id : ''), render: 'custom' },
-  { key: 'originalOwner', label: t('sheet.field.originalOwner'), value: 'initial_owner' },
-  { key: 'currentOwner', label: t('sheet.field.currentOwner'), value: 'owner' },
-  { key: 'date', label: t('sheet.field.date'), value: 'dates' },
-  { key: 'artist', label: t('sheet.field.artists'), value: (c) => c.record.artist_names, join: ', ' },
-  { key: 'scribe', label: t('sheet.field.scribe'), value: 'scriber' },
-  { key: 'workshop', label: t('sheet.field.workshop'), value: 'workshop' },
-  { key: 'type', label: t('sheet.field.type'), value: 'type' },
-  { key: 'inventoryNumber', label: t('sheet.field.inventoryNumber'), value: (c) => c.record.owner_reference },
-  { key: 'materials', label: t('sheet.field.materials'), value: (c) => c.text.materials, join: '; ' },
-  { key: 'dimensions', label: t('sheet.field.dimensions'), value: 'dimensions' },
-  { key: 'dynasty', label: t('sheet.field.periodDynasty'), value: () => dynastyNames.value },
-  { key: 'production', label: t('sheet.field.placeOfProduction'), value: 'place_of_production' },
-  { key: 'provenance', label: t('sheet.field.provenance'), value: 'provenance' },
-  { key: 'binding', label: t('sheet.field.binding'), value: 'binding_desc' },
-  { key: 'description', label: t('sheet.field.description'), value: 'description', render: 'block' },
-  // The only description there is, under the plain label; the toggled one
-  // is the sheet component's, below.
-  { key: 'shortDescription', label: t('sheet.field.description'), value: 'short_description', render: 'block', when: () => !bothDescriptions.value },
-  { key: 'catalogue', label: t('sheet.field.catalogueLink'), value: 'linkcatalogs', render: 'link' },
-  { key: 'obtention', label: t('sheet.field.obtentionMethod'), value: 'obtention' },
-  { key: 'datation', label: t('sheet.field.datationMethod'), value: 'method_for_datation' },
-  { key: 'provenanceMethod', label: t('sheet.field.provenanceMethod'), value: 'method_for_provenance' },
-  { key: 'bibliography', label: t('sheet.field.bibliography'), value: 'bibliography', render: 'block' },
-  { key: 'copyright', label: t('sheet.field.copyrightInformation'), value: 'copyright' },
-])
-const rows = computed(() =>
-  item.value ? sheetRows(spec.value, { record: item.value, text: sheet.value, glossary: glossary.value }) : [],
-)
-const shortDescription = computed(() =>
-  bothDescriptions.value ? { html: md(sheet.value.short_description, { glossary: glossary.value }) } : null,
-)
-
-// ── Credits and citation ──────────────────────────────────────────────────
-
-const preparedBy = computed(() => sheet.value.author ?? attribution.value.author ?? '')
-const copyEditedBy = computed(() => sheet.value.copy_editor ?? attribution.value.copy_editor ?? '')
-const credits = computed(() =>
-  [
-    [t('sheet.field.preparedBy'), preparedBy.value],
-    [t('sheet.field.copyeditedBy'), copyEditedBy.value],
-    [t('sheet.field.translationBy'), sheet.value.translator],
-    [t('sheet.field.translationCopyeditedBy'), sheet.value.translation_copy_editor],
-  ]
-    .filter(([, value]) => Boolean(value))
-    .map(([label, value]) => ({ label, value })),
-)
-// Legacy's `#info-project-name`: the exhibition's own title for a native
-// member, the source project's name for a borrowed one, nothing for a record
-// legacy left nameless.
-const sourceProject = computed(() => projectNameOf(item.value))
-const citationText = computed(() =>
-  item.value
-    ? citation({ author: preparedBy.value, name: sheet.value.name, project: sourceProject.value, inWord: t('record.citation.in') })
-    : '',
-)
 
 // The projects legacy offers a "search the related database" link for. DCA is
 // deliberately not among them: legacy has no public DCA database search to
 // point at, so a DCA-sourced member gets no such link at all.
 const RELATED_DATABASE_PROJECTS = new Set(['ISL', 'EPM', 'DBA', 'BAR', 'AWE', 'awe'])
-const hasRelatedDatabase = computed(() => RELATED_DATABASE_PROJECTS.has(item.value?.project_key))
-const showEiacNotice = computed(() => item.value?.project_key === 'EPM')
-
-// ── Photos ────────────────────────────────────────────────────────────────
-
-const photos = computed(() =>
-  [...(item.value?.images ?? [])]
-    .sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0))
-    .map((p) => ({
-      url: p.url,
-      alt: itemLabel(item.value),
-      caption: p.captions?.[lang.value] ?? p.captions?.[defaultLang] ?? '',
-      photographer: p.photographer ?? '',
-      copyright: p.copyright ?? '',
-    })),
-)
+const hasRelatedDatabase = (record) => RELATED_DATABASE_PROJECTS.has(record.project_key)
+const showEiacNotice = (record) => record.project_key === 'EPM'
 
 // ── Related content ───────────────────────────────────────────────────────
 //
 // Decision Q3: none of these become a constructed URL. A related item the
-// package holds opens locally; one it does not is shown as the reference it
-// is; a sibling site is linked only where the import carried a host.
-
-const related = useRelatedRecords(item, { entity: 'items', language: lang })
-const relatedRows = computed(() =>
-  related.value.inPackage
-    .filter(({ record }) => itemById.value.has(record.id))
-    .map(({ record, justification }) => ({
-      id: record.id,
-      image: record.images?.[0]?.url ?? '',
-      imageAlt: itemLabel(record),
-      name: mdInline(tr('items', record.id, defaultLang).name ?? record.internal_name ?? ''),
-      meta: [countryLabel(record.country_id), justification ? mdStrip(justification) : ''].filter(Boolean),
-      to: itemRoute(record),
-    })),
-)
-const relatedOutside = computed(() =>
-  (item.value?.related_items ?? []).filter((r) => !r.in_package || !itemById.value.has(r.id)),
-)
+// package holds opens locally (the view's rows); one it does not is shown
+// as the reference it is; a sibling site is linked only where the import
+// carried a host.
+//
+// `records`/`outside` come from the view's own `useRelatedRecords`, which
+// resolves against the whole package, not this build's language subset — the
+// same gap the results page closes with `scope`. A related item outside the
+// subset is moved into the reference list rather than opened, and its own
+// reference entry (project key, backward_compatibility) is recovered from
+// the record's raw `related_items`, because the view's tile shape does not
+// carry them.
 const byName = (a, b) => (a.name ?? '').localeCompare(b.name ?? '')
-const galleryRefs = computed(() => (item.value?.gallery_references ?? []).filter((g) => g.kind === 'gallery').sort(byName))
+const galleryRefs = (record) => (record.gallery_references ?? []).filter((g) => g.kind === 'gallery').sort(byName)
 // Legacy suppressed every exhibition link whose host was
 // exhibitions.museumwnf.org; decision Q3 says outbound links are not
 // dropped, so they are shown here.
-const exhibitionRefs = computed(() => (item.value?.gallery_references ?? []).filter((g) => g.kind === 'exhibition').sort(byName))
+const exhibitionRefs = (record) => (record.gallery_references ?? []).filter((g) => g.kind === 'exhibition').sort(byName)
+
+function relatedRows(records) {
+  return records.filter((r) => itemById.value.has(r.id))
+}
+function relatedOutsideRefs(records, outside, record) {
+  const missing = records
+    .filter((r) => !itemById.value.has(r.id))
+    .map((r) => (record.related_items ?? []).find((ref) => ref.id === r.id))
+    .filter(Boolean)
+  return [...outside, ...missing]
+}
 
 // Popouts: timeline, glossary tool, one per dynasty.
 const openPopup = ref(null)
 function togglePopup(which) {
   openPopup.value = openPopup.value === which ? null : which
-  closeTerm()
 }
 
-const dynastyEntries = computed(() =>
-  (item.value?.dynasty_ids ?? [])
+const dynastyEntries = (record, language) =>
+  (record.dynasty_ids ?? [])
     .map((id) => {
-      const translated = translations('dynasties', lang.value)[id] ?? translations('dynasties', defaultLang)[id] ?? {}
+      const translated = translations('dynasties', language)[id] ?? translations('dynasties', defaultLang)[id] ?? {}
       return { id, record: dynastyById.value.get(id), ...translated }
     })
-    .filter((d) => d.history),
-)
+    .filter((d) => d.history)
 
-const timelineCountry = ref('')
+const timelineCountry = ref('all')
 watch(item, (it) => { timelineCountry.value = it ? (countryCodeOf(it.country_id) ?? 'all') : 'all' }, { immediate: true })
 function countryCodeOf(countryId) {
   for (const [code] of timelineCountries.value) {
@@ -222,7 +104,7 @@ const itemEvents = computed(() => {
 })
 
 const glossaryInput = ref('')
-const glossaryMatches = computed(() => searchGlossary(glossaryInput.value, lang.value))
+const glossaryMatches = (language) => searchGlossary(glossaryInput.value, language)
 const selectedGlossary = ref(null)
 
 // Legacy's "As PDF (including images)" was the browser's own print dialog.
@@ -232,70 +114,52 @@ function printSheet() {
 </script>
 
 <template>
-  <div id="database-page-wrapper" v-if="item">
-    <div id="languages">
-      <RecordLanguages :languages="languageEntries" :language="lang" @select="select" />
-    </div>
-
-    <BackLink />
-
-    <div v-if="!ready" class="loader">{{ $t('core.status.loading') }}</div>
-
-    <div v-else id="database-object-wrapper" :dir="dir">
-      <div id="photo-info-wrapper">
-        <div id="photo-container">
-          <MediaGallery :images="photos" />
-
-          <div id="links-container">
-            <!-- Decision Q3: legacy's `remote-object` URL came from a
-                 hand-maintained table with no counterpart in the new model, so
-                 the source is named, not linked. The chip is keyed by project
-                 FAMILY, as legacy's `#info-citation-link` class is, and the
-                 source line is dropped when legacy has no project name to print. -->
-            <p id="source-reference" v-if="projectFamily(item)">
-              <span class="project-chip" :class="`project-${projectFamily(item)}`">{{ item.project_key || projectFamily(item) }}</span>
-              <template v-if="sourceProject">{{ t('record.sheet.sourceDatabase') }}: {{ sourceProject }}</template>
-            </p>
-            <p id="source-uid"><code>{{ item.backward_compatibility }}</code></p>
-            <p id="add-collection-link">
-              <a :href="links.myCollection" target="_blank" rel="noopener">↗ {{ t('record.action.addToCollection') }}</a>
-            </p>
-          </div>
-        </div>
-
-        <div id="info-container" @click="onGlossaryClick">
-          <div id="info-eiac" v-if="showEiacNotice">
-            {{ t('exhibition.item.explorePartnerNote') }} <strong><em>{{ languageNameList }}</em></strong>
-          </div>
-
-          <RecordSheet :rows="rows" layout="list" :short-description="shortDescription" short-description-after="description">
-            <!-- E6: a hidden museum keeps its name on the sheet and loses the
-                 link, because it has no page to link to. -->
-            <template #museum>
-              <RouterLink v-if="!isHiddenPartner(partner)" :to="partnerRoute(partner)">{{ partnerLabel(item.partner_id) }}</RouterLink>
-              <span v-else>{{ partnerLabel(item.partner_id) }}</span>
-            </template>
-          </RecordSheet>
-
-          <RecordCredits
-            :credits="credits"
-            :working-number="item.mwnf_reference ?? ''"
-            :working-number-label="t('sheet.field.workingNumber')"
-            :citation="citationText"
-            :citation-heading="t('record.citation.ofThisPage')"
-          />
-        </div>
+  <RecordView v-if="itemById.has(id)" :spec="itemSheet" :id="id" class="database-page">
+    <!-- No title over the sheet: the name is its first row, as legacy's was. -->
+    <template #header="{ languages, language, select }">
+      <div class="languages">
+        <RecordLanguages :languages="languages" :language="language" @select="select" />
       </div>
+      <BackLink />
+    </template>
 
-      <!-- ── Related content ────────────────────────────────────────────── -->
-      <div id="related-content-container">
+    <template #before-sheet="{ record, languages }">
+      <div class="links-container">
+        <!-- Decision Q3: legacy's `remote-object` URL came from a
+             hand-maintained table with no counterpart in the new model, so
+             the source is named, not linked. The chip is keyed by project
+             FAMILY, as legacy's `#info-citation-link` class is, and the
+             source line is dropped when legacy has no project name to print. -->
+        <p class="source-reference" v-if="projectFamily(record)">
+          <span class="project-chip" :class="`project-${projectFamily(record)}`">{{ record.project_key || projectFamily(record) }}</span>
+          <template v-if="projectNameOf(record)">{{ t('record.sheet.sourceDatabase') }}: {{ projectNameOf(record) }}</template>
+        </p>
+        <p class="source-uid"><code>{{ record.backward_compatibility }}</code></p>
+        <p class="add-collection-link">
+          <a :href="links.myCollection" target="_blank" rel="noopener">↗ {{ t('record.action.addToCollection') }}</a>
+        </p>
+      </div>
+      <div class="info-eiac" v-if="showEiacNotice(record)">
+        {{ t('exhibition.item.explorePartnerNote') }} <strong><em>{{ languages.map((l) => l.label).join(', ') }}</em></strong>
+      </div>
+    </template>
+
+    <!-- E6: a hidden museum keeps its name on the sheet and loses the link,
+         because it has no page to link to. -->
+    <template #museum="{ record }">
+      <RouterLink v-if="!isHiddenPartner(partnerById.get(record.partner_id))" :to="partnerRoute(partnerById.get(record.partner_id))">{{ partnerLabel(record.partner_id) }}</RouterLink>
+      <span v-else>{{ partnerLabel(record.partner_id) }}</span>
+    </template>
+
+    <template #related="{ record, language, records, outside }">
+      <div class="related-content-container">
         <p class="related-header related-header--caps">{{ $t('exhibition.related.title') }}</p>
-        <p id="related-description">{{ t('exhibition.related.description') }}</p>
+        <p class="related-description">{{ t('exhibition.related.description') }}</p>
 
-        <RelatedRecords :heading="t('exhibition.related.objects')" :records="relatedRows" variant="grid" :action-label="t('exhibition.action.seeDatabaseEntry')">
+        <RelatedRecords :heading="t('exhibition.related.objects')" :records="relatedRows(records)" variant="grid" :action-label="t('exhibition.action.seeDatabaseEntry')">
           <!-- Related items this exhibition does not ship: the reference it is, awaiting a resolver. -->
-          <ul v-if="relatedOutside.length" class="reference-list">
-            <li v-for="r in relatedOutside" :key="r.id">
+          <ul v-if="relatedOutsideRefs(records, outside, record).length" class="reference-list">
+            <li v-for="r in relatedOutsideRefs(records, outside, record)" :key="r.id">
               <span class="project-chip" :class="`project-${projectFamily(r)}`">{{ r.project_key || projectFamily(r) }}</span>
               <code>{{ r.backward_compatibility }}</code>
               <span class="unresolved-note">{{ $t('exhibition.results.notInThisExhibition') }}</span>
@@ -304,15 +168,15 @@ function printSheet() {
         </RelatedRecords>
 
         <!-- Artistic Introduction — an Islamic Art site feature legacy linked from ISL/EPM sheets. -->
-        <div v-if="item.project_key === 'ISL' || item.project_key === 'EPM'">
+        <div v-if="record.project_key === 'ISL' || record.project_key === 'EPM'">
           <p class="related-line">
             <a :href="`${links.islamicArt}/gai/ISL/`" target="_blank" rel="noopener">↗ {{ t('exhibition.nav.artisticIntroduction') }}</a>
           </p>
         </div>
 
         <!-- Timeline for this item. Withheld entirely when the exhibition
-             reports no chronology: legacy prints no "timeline" anywhere on the
-             sheet in that case, not merely a nav entry short. -->
+             reports no chronology: legacy prints no "timeline" anywhere on
+             the sheet in that case, not merely a nav entry short. -->
         <div v-if="hasTimeline && (itemEvents.length || itemRange[0] != null)">
           <p class="related-line clickable" @click="togglePopup('timeline')">➤ {{ t('record.related.timelineForItem') }}</p>
           <div class="popout" v-if="openPopup === 'timeline'" dir="ltr">
@@ -351,7 +215,7 @@ function printSheet() {
             <div class="popout-instructions">{{ t('record.glossary.instructions') }}</div>
             <input class="glossary-input" type="text" v-model="glossaryInput" />
             <ul class="glossary-list" v-if="glossaryInput && !selectedGlossary">
-              <li v-for="hit in glossaryMatches" :key="hit.id" @click="selectedGlossary = hit; glossaryInput = hit.spelling">{{ hit.spelling }}</li>
+              <li v-for="hit in glossaryMatches(language)" :key="hit.id" @click="selectedGlossary = hit; glossaryInput = hit.spelling">{{ hit.spelling }}</li>
             </ul>
             <div class="popout-scroll" v-if="selectedGlossary">
               <p class="info-label">{{ t('record.glossary.definition') }}</p>
@@ -361,9 +225,9 @@ function printSheet() {
         </div>
 
         <!-- Dynasties -->
-        <div v-if="dynastyEntries.length">
+        <div v-if="dynastyEntries(record, language).length">
           <p class="related-sub">{{ t('exhibition.nav.islamicDynasties') }}</p>
-          <div v-for="dynasty in dynastyEntries" :key="dynasty.id">
+          <div v-for="dynasty in dynastyEntries(record, language)" :key="dynasty.id">
             <p class="related-line clickable" @click="togglePopup(`dynasty:${dynasty.id}`)">➤ {{ dynasty.name }}</p>
             <div class="popout" v-if="openPopup === `dynasty:${dynasty.id}`">
               <div class="popout-close" @click="openPopup = null">✕</div>
@@ -383,25 +247,25 @@ function printSheet() {
         </div>
 
         <!-- Audio / video -->
-        <SheetSection v-if="item.media?.length" :heading="t('record.related.audioVideo')">
-          <p class="related-line" v-for="file in item.media" :key="file.url">
+        <SheetSection v-if="record.media?.length" :heading="t('record.related.audioVideo')">
+          <p class="related-line" v-for="file in record.media" :key="file.url">
             <a :href="file.url" target="_blank" rel="noopener">↗ {{ file.title ?? file.url }}</a>
           </p>
         </SheetSection>
 
         <!-- On display in -->
-        <div v-if="galleryRefs.length || exhibitionRefs.length">
+        <div v-if="galleryRefs(record).length || exhibitionRefs(record).length">
           <p class="related-header">{{ t('record.related.onDisplayIn') }}</p>
-          <div v-if="exhibitionRefs.length">
+          <div v-if="exhibitionRefs(record).length">
             <p class="related-sub">{{ t('record.related.exhibitions') }}</p>
-            <p class="related-line" v-for="ref in exhibitionRefs" :key="ref.id">
+            <p class="related-line" v-for="ref in exhibitionRefs(record)" :key="ref.id">
               <a v-if="ref.legacy_host" :href="ref.legacy_host" target="_blank" rel="noopener">↗ {{ ref.name }}</a>
               <span v-else>{{ ref.name }} <span class="unresolved-note">{{ $t('exhibition.item.linkPending') }}</span></span>
             </p>
           </div>
-          <div v-if="galleryRefs.length">
+          <div v-if="galleryRefs(record).length">
             <p class="related-sub">{{ t('record.related.galleries') }}</p>
-            <p class="related-line" v-for="ref in galleryRefs" :key="ref.id">
+            <p class="related-line" v-for="ref in galleryRefs(record)" :key="ref.id">
               <a v-if="ref.legacy_host" :href="ref.legacy_host" target="_blank" rel="noopener">↗ {{ ref.name }}</a>
               <span v-else>{{ ref.name }} <span class="unresolved-note">{{ $t('exhibition.item.linkPending') }}</span></span>
             </p>
@@ -409,15 +273,15 @@ function printSheet() {
         </div>
 
         <!-- Search related database: the gate is on the block, as legacy's was. -->
-        <div v-if="hasRelatedDatabase">
+        <div v-if="hasRelatedDatabase(record)">
           <p class="related-header">{{ t('exhibition.search.relatedDatabase') }}</p>
-          <p class="related-line" v-if="item.project_key === 'ISL' || item.project_key === 'EPM'">
+          <p class="related-line" v-if="record.project_key === 'ISL' || record.project_key === 'EPM'">
             <a :href="`${links.islamicArt}/database.php`" target="_blank" rel="noopener">↗ {{ $t('core.project.islamicArt') }}</a>
           </p>
-          <p class="related-line" v-if="item.project_key === 'DBA' || item.project_key === 'BAR'">
+          <p class="related-line" v-if="record.project_key === 'DBA' || record.project_key === 'BAR'">
             <a :href="`${links.baroqueArt}/database.php`" target="_blank" rel="noopener">↗ {{ $t('core.project.baroqueArt') }}</a>
           </p>
-          <p class="related-line" v-if="item.project_key === 'AWE' || item.project_key === 'awe'">
+          <p class="related-line" v-if="record.project_key === 'AWE' || record.project_key === 'awe'">
             <a :href="`${links.sharingHistory}/database.php`" target="_blank" rel="noopener">↗ {{ $t('core.project.sharingHistory') }}</a>
           </p>
         </div>
@@ -435,38 +299,46 @@ function printSheet() {
           <p class="related-line clickable" @click="printSheet()">➤ {{ t('record.action.downloadPdf') }}</p>
         </div>
       </div>
-    </div>
-
-    <GlossaryPopover :term="openTerm" :html="openTermHtml" :dir="dir" @close="closeTerm" />
-  </div>
+    </template>
+  </RecordView>
   <NotFoundView v-else />
 </template>
 
 <style scoped>
-#database-page-wrapper { background: #fff; width: 100%; min-height: 400px; }
+.database-page { background: #fff; width: 100%; min-height: 400px; }
 
-#languages { background: var(--rule-grey); padding: 6px 20px; }
+.languages { background: var(--rule-grey); padding: 6px 20px; }
 
-#database-object-wrapper { padding: 0 20px 30px; }
-#photo-info-wrapper { display: flex; gap: 26px; align-items: flex-start; }
-#photo-container { flex: 0 0 42%; max-width: 42%; }
+/* Legacy's two columns — the photos on the left, the sheet on the right, the
+   related content under both — over the view's single main column: the
+   gallery takes the first column, everything else the second, and the
+   related block spans the two. */
+.database-page :deep(.mwnf-record__body) { padding: 0 20px 30px; }
+.database-page :deep(.mwnf-record__main) {
+  display: grid;
+  grid-template-columns: 42% minmax(0, 1fr);
+  column-gap: 26px;
+  align-items: start;
+}
+.database-page :deep(.mwnf-record__main > *) { grid-column: 2; }
+.database-page :deep(.mwnf-record__main > .mwnf-media) { grid-column: 1; grid-row: 1 / span 12; }
+.database-page :deep(.mwnf-record__main > .related-content-container) { grid-column: 1 / -1; }
 
-#links-container { padding-top: 14px; font-size: 14px; }
-#links-container p { margin-bottom: 6px; }
-#source-uid code { font-size: 12px; color: #666; word-break: break-all; }
-#add-collection-link a { color: var(--link-blue); }
+.links-container { padding-top: 14px; font-size: 14px; }
+.links-container p { margin-bottom: 6px; }
+.source-uid code { font-size: 12px; color: #666; word-break: break-all; }
+.add-collection-link a { color: var(--link-blue); }
 
-#info-container { flex: 1; min-width: 0; padding-top: 14px; }
-#info-eiac {
+.info-eiac {
   background: var(--rule-grey);
   padding: 10px 12px;
   margin-bottom: 14px;
   font-size: 13px;
 }
 .info-label { font-weight: 700; color: var(--main-color); margin-top: 12px; }
-#info-container :deep(.mwnf-sheet__value a) { color: var(--link-blue); }
+.database-page :deep(.mwnf-sheet__value a) { color: var(--link-blue); }
 
-#related-content-container { margin-top: 30px; border-top: 3px solid var(--contrast-color); padding-top: 16px; }
+.related-content-container { margin-top: 30px; border-top: 3px solid var(--contrast-color); padding-top: 16px; }
 .related-header {
   font-weight: 700;
   color: var(--main-color);
@@ -476,7 +348,7 @@ function printSheet() {
 }
 .related-header--caps { text-transform: uppercase; }
 .related-sub { font-weight: 700; margin-top: 12px; }
-#related-description { font-size: 13px; color: #555; margin-top: 6px; }
+.related-description { font-size: 13px; color: #555; margin-top: 6px; }
 .related-line { margin-top: 6px; }
 .related-line a { color: var(--link-blue); }
 .related-line.clickable { color: var(--main-color); cursor: pointer; }
@@ -520,7 +392,6 @@ function printSheet() {
 .glossary-list li:hover { background: var(--rule-grey); }
 
 @media only screen and (max-width: 849px) {
-  #photo-info-wrapper { flex-direction: column; }
-  #photo-container { max-width: 100%; flex: none; width: 100%; }
+  .database-page :deep(.mwnf-record__main) { display: block; }
 }
 </style>
