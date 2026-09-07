@@ -1,15 +1,25 @@
 <script setup>
-import { computed } from 'vue'
-import {
-  relatedContent, chromeImage, countryLabelFromCode, mdInline, md,
-} from '../composables/useExhibitionData.js'
+import { LinkListView } from '@metanull/viewer-layout/views'
 import { useI18n } from '@metanull/viewer-core'
-import BackLink from '../components/BackLink.vue'
+import {
+  relatedContent, chromeImage, countryLabelFromCode, mdStrip,
+} from '../composables/useExhibitionData.js'
 
 const { t, locale } = useI18n()
 
 // Legacy's RelatedContent: the exhibition's reading list, grouped by category
-// and ordered inside each group.
+// and ordered inside each group — now a LinkListView spec. That view has no
+// slots and renders `label`/`note` as plain interpolated text rather than
+// through the Markdown pipeline (`{{ link.label }}`, not `v-html`), which this
+// exhibition's own related_content.json makes a real loss rather than a
+// theoretical one: every one of its five entries is `kind: "text"` — a
+// bibliography with no title and no link, written in Markdown for its book
+// titles' italics and its paragraph breaks — so what reaches the page is that
+// text with the emphasis stripped and every line run together, since a plain
+// text node collapses the whitespace `mdStrip` leaves behind exactly as an
+// HTML paragraph always does. There is no view-level hook this spec can use
+// to keep the formatting; recorded here rather than approximated with markup
+// the view will not render.
 //
 // The four category NAMES are the one thing the package cannot supply. Legacy
 // reads them from `mwnf3_thematic_gallery.related_content_category`, which the
@@ -21,12 +31,12 @@ const { t, locale } = useI18n()
 // carries the same four categories, so the names read from the shared
 // `exhibition.relatedCategory.*` dictionary rather than a copy of this site's
 // own.
-const CATEGORY_NAMES = computed(() => ({
-  1: t('exhibition.relatedCategory.furtherReading'),
-  2: t('exhibition.relatedCategory.mwnfContent'),
-  3: t('exhibition.relatedCategory.partnerContent'),
-  4: t('exhibition.relatedCategory.otherContent'),
-}))
+const CATEGORY_NAMES = {
+  1: 'exhibition.relatedCategory.furtherReading',
+  2: 'exhibition.relatedCategory.mwnfContent',
+  3: 'exhibition.relatedCategory.partnerContent',
+  4: 'exhibition.relatedCategory.otherContent',
+}
 
 // Legacy's own display order for the four groups, which is the order its API
 // happened to answer in — not ascending id.
@@ -41,7 +51,32 @@ function href(entry) {
   return entry.url ?? null
 }
 
-const groups = computed(() => {
+// A text entry (no title) reads as its own bibliography; anything else names
+// itself, falling back to its link when even that is missing.
+function labelFor(entry) {
+  if (text(entry.titles)) return mdStrip(text(entry.titles))
+  if (text(entry.texts)) return mdStrip(text(entry.texts))
+  const link = href(entry)
+  return link || t('exhibition.relatedCategory.unknown')
+}
+
+// Everything a title entry carries beyond its own label — location, authors,
+// a short description — collapsed to one line under it; a plain text entry
+// has already said everything it has in `labelFor`, so it carries none.
+function noteFor(entry) {
+  if (!text(entry.titles)) return ''
+  const parts = []
+  if (entry.entity_location || entry.entity_country) {
+    parts.push([entry.entity_location, entry.entity_country ? countryLabelFromCode(entry.entity_country) : '']
+      .filter(Boolean).join(', '))
+  }
+  if (entry.authors || entry.type_resource) parts.push([entry.authors, entry.type_resource].filter(Boolean).join(', '))
+  if (text(entry.descriptions)) parts.push(mdStrip(text(entry.descriptions)))
+  if (entry.further_reading) parts.push(mdStrip(entry.further_reading))
+  return parts.join(' — ')
+}
+
+function groups() {
   const byCategory = new Map()
   for (const entry of relatedContent.value) {
     const bucket = byCategory.get(entry.category_id)
@@ -49,74 +84,32 @@ const groups = computed(() => {
     else byCategory.set(entry.category_id, [entry])
   }
   const ids = [
-    ...CATEGORY_ORDER.filter(id => byCategory.has(id)),
-    ...[...byCategory.keys()].filter(id => !CATEGORY_ORDER.includes(id)).sort(),
+    ...CATEGORY_ORDER.filter((id) => byCategory.has(id)),
+    ...[...byCategory.keys()].filter((id) => !CATEGORY_ORDER.includes(id)).sort(),
   ]
-  return ids.map(id => ({
-    id,
-    name: CATEGORY_NAMES.value[id] ?? `${t('exhibition.relatedCategory.unknown')} ${id}`,
-    entries: [...byCategory.get(id)].sort(
-      (a, b) => (a.display_order ?? 0) - (b.display_order ?? 0)
-    ),
+  return ids.map((id) => ({
+    heading: CATEGORY_NAMES[id] ?? 'exhibition.relatedCategory.unknown',
+    links: [...byCategory.get(id)]
+      .sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0))
+      .map((entry) => ({ label: labelFor(entry), href: href(entry) ?? undefined, note: noteFor(entry) || undefined })),
   }))
-})
+}
+
+const spec = {
+  groups,
+  empty: 'exhibition.related.notAvailable',
+  // LinkListView takes a fixed destination, not "the page before this one" —
+  // Home is the one address every visitor can always reach back to.
+  back: { label: 'core.action.back', to: { name: 'home' } },
+}
 </script>
 
 <template>
-  <div id="related-content-wrapper">
-    <BackLink />
-    <div id="related-content-container">
-      <!-- Kept as a guard, not as this exhibition's normal state. Its five
-           entries are pure bibliographies with neither a link nor an uploaded
-           document; the importer used to drop those on the floor because
-           `collection_media` needs a URL, and now files them on the
-           exhibition's `extra.further_readings` instead. An empty page would
-           read as a rendering fault, so say it plainly if it ever happens. -->
-      <p class="related-content-empty" v-if="!groups.length">
-        {{ $t('exhibition.related.notAvailable') }}
-      </p>
-
-      <div class="related-content-category" v-for="group in groups" :key="group.id">
-        <div class="related-content-category-header">{{ group.name }}</div>
-
-        <div class="related-content" v-for="entry in group.entries" :key="entry.legacy_id">
-          <!-- kind: "text" — the entry IS the bibliography. No link, no title,
-               no author; the importer converts the legacy HTML to markdown on
-               the way in, so this goes through md() rather than v-html raw. -->
-          <div class="further-reading prose" v-if="text(entry.texts)" v-html="md(text(entry.texts))"></div>
-
-          <div class="further-reading prose" v-if="entry.further_reading" v-html="md(entry.further_reading)"></div>
-
-          <div v-if="entry.entity_location || entry.entity_country">
-            <span v-if="entry.entity_location">{{ entry.entity_location }}</span>
-            <span v-if="entry.entity_location && entry.entity_country">, </span>
-            <span v-if="entry.entity_country">{{ countryLabelFromCode(entry.entity_country) }}</span>
-          </div>
-
-          <div v-if="text(entry.titles)">
-            <a v-if="href(entry)" :href="href(entry)" target="_blank" rel="noopener"
-               v-html="mdInline(text(entry.titles))"></a>
-            <span v-else v-html="mdInline(text(entry.titles))"></span>
-          </div>
-          <div v-else-if="href(entry)">
-            <a :href="href(entry)" target="_blank" rel="noopener">{{ href(entry) }}</a>
-          </div>
-
-          <div v-if="entry.authors || entry.type_resource">
-            <span v-if="entry.authors">{{ entry.authors }}</span>
-            <span v-if="entry.authors && entry.type_resource">, </span>
-            <span v-if="entry.type_resource">{{ entry.type_resource }}</span>
-          </div>
-
-          <div class="prose" v-if="text(entry.descriptions)" v-html="md(text(entry.descriptions))"></div>
-        </div>
-      </div>
-    </div>
-  </div>
+  <LinkListView :spec="spec" class="related-content" />
 </template>
 
 <style scoped>
-#related-content-wrapper {
+.related-content {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -125,17 +118,9 @@ const groups = computed(() => {
   color: var(--secondary-text-color);
   background: var(--secondary-color);
 }
-#related-content-container { width: 70%; padding: 20px 50px 50px; }
-#related-content-container a { color: var(--main-color); text-decoration: underline; }
-#related-content-container a:hover { background: var(--contrast-color); }
-
-.related-content-empty { font-style: italic; line-height: 1.5; }
-.related-content-category { margin-bottom: 30px; }
-.related-content-category-header { font-weight: 700; margin-bottom: 10px; }
-.related-content { margin-bottom: 14px; line-height: 1.5; }
-.further-reading :deep(br) { display: block; content: ''; }
+.related-content :deep(.mwnf-link-list__groups) { width: 70%; padding: 20px 50px 50px; }
 
 @media only screen and (max-width: 974px) {
-  #related-content-container { width: 100%; padding: 20px 30px 50px; }
+  .related-content :deep(.mwnf-link-list__groups) { width: 100%; padding: 20px 30px 50px; }
 }
 </style>

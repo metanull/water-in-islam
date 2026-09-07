@@ -1,151 +1,75 @@
 <script setup>
 import { computed } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
+import { useI18n } from '@metanull/viewer-core'
+import { CatalogueResultsView } from '@metanull/viewer-layout/views'
 import {
-  themeByRouteId, themeText, themePictures, romanFor,
-} from '../composables/useExhibitionData.js'
+  pictureById, romanFor, themeByRouteId, themeText, themeTree,
+} from '../composables/themes.js'
 import { pictureParent } from '../composables/useThemePresentation.js'
-import { useGridRecords } from '../composables/useCollection.js'
+import { tile } from '../composables/useCollection.js'
 import BackLink from '../components/BackLink.vue'
-import { sortChronological, useI18n } from '@metanull/viewer-core'
-import { RecordGrid } from '@metanull/viewer-layout/content'
 
-const { locale } = useI18n()
-const gridRecords = useGridRecords()
-
-// Legacy's ThemeGallery: every record a theme touches, as one grid, with a
-// dropdown that narrows it to a single sub-theme.
-//
-// Legacy built the query by looping over the theme's *sub-themes* only
-// (`for (let subtheme in this.subthemes) addURL += ...`), which means a theme
-// with no sub-themes produced the literal string "undefined" and an empty
-// grid. Here the default is the theme's own selections **plus** its
-// sub-themes', so the page works in both shapes; for the four themes that do
-// have sub-themes the extra rows are the overview pictures, which legacy's
-// dropdown had no option for either way.
 const route = useRoute()
-const router = useRouter()
+const { t, locale } = useI18n()
 
+// Legacy's ThemeGallery: every record a theme touches, as one grid — now a
+// CatalogueResultsView spec. `tree.itemsUnder` walks the theme and every
+// sub-theme's picture selections depth-first (the union legacy's own dropdown
+// had no option for either way, since its query only ever looped the
+// sub-themes); a picture's own id is not a catalogue id, so each is resolved
+// through its (possibly absent) parent — see `pictureParent` — and only the
+// resolvable ones become the scope. The per-sub-theme narrowing legacy's
+// dropdown offered on this page is not reproduced: composables/themeSpecs.js
+// carries the reasons the picture→parent indirection stays this family's own
+// rather than the view's, and a second, redundant filter surface over the
+// same data was not worth adding back on top of it.
 const theme = computed(() => themeByRouteId(route.params.id))
 
-const subIndex = computed(() => {
-  const raw = route.params.subtheme
-  if (!raw) return null
-  const n = Number(raw)
-  return Number.isInteger(n) && n >= 1 ? n : null
-})
-
-const subThemes = computed(() =>
-  (theme.value?.sub_themes ?? []).map((sub, index) => ({
-    index: index + 1,
-    id: sub.id,
-    title: themeText(sub, locale.value).title ?? sub.internal_name ?? '',
-    node: sub,
-  }))
-)
-
-const selectedSub = computed(() =>
-  subIndex.value === null ? null : subThemes.value[subIndex.value - 1] ?? null
-)
-
-const sourceNodes = computed(() => {
-  if (!theme.value) return []
-  if (selectedSub.value) return [selectedSub.value.node]
-  return [theme.value, ...(theme.value.sub_themes ?? [])]
-})
-
-// A theme selects pictures; the grid shows records. Two selections can share a
-// parent (a different crop of the same object), which is why legacy deduplicated
-// by thumbnail — deduplicating by parent id is the same rule stated on the
-// entity the grid actually renders.
-const results = computed(() => {
-  const seen = new Set()
-  const out = []
-  for (const node of sourceNodes.value) {
-    for (const picture of themePictures(node)) {
-      const parent = pictureParent(picture)
-      if (!parent || seen.has(parent.id)) continue
-      seen.add(parent.id)
-      out.push(parent)
-    }
+const itemIds = computed(() => {
+  const ids = new Set()
+  if (!theme.value) return ids
+  for (const pictureId of themeTree.itemsUnder(theme.value.id)) {
+    const parent = pictureParent(pictureById.value.get(pictureId))
+    if (parent) ids.add(parent.id)
   }
-  return sortChronological(out, { undated: 'first' })
+  return ids
 })
-const rows = computed(() => gridRecords(results.value))
 
 const title = computed(() => themeText(theme.value, locale.value).title ?? theme.value?.internal_name ?? '')
-const roman = computed(() => romanFor(theme.value?.display_order ?? 1))
 
-function onSubThemeChange(event) {
-  const value = event.target.value
-  router.push(
-    value
-      ? `/theme-gallery/${route.params.id}/${value}`
-      : `/theme-gallery/${route.params.id}`
-  )
-}
+const spec = computed(() => ({
+  entity: 'items',
+  scope: (record) => itemIds.value.has(record.id),
+  // Undated first, as legacy's own `sortChronological(out, { undated: 'first' })` did.
+  sort: { undated: 'first' },
+  variant: 'grid',
+  recordRoute: 'item',
+  record: (item, helpers) => tile(item, helpers.t),
+  actionLabel: 'exhibition.action.seeDatabaseEntry',
+  empty: 'exhibition.theme.noRecords',
+  summary: () => [{
+    label: t('exhibition.theme.galleryLabel'),
+    value: `${t('exhibition.theme.romanLabel')} ${romanFor(theme.value?.display_order ?? 1)} | ${title.value}`,
+  }],
+}))
 </script>
 
 <template>
-  <div id="theme-gallery-container" v-if="theme">
-    <BackLink />
+  <CatalogueResultsView v-if="theme" :spec="spec" class="theme-gallery">
+    <template #before>
+      <BackLink />
+    </template>
+    <template #empty>
+      <p class="no-results">{{ t('exhibition.theme.noRecords') }}</p>
+    </template>
+  </CatalogueResultsView>
 
-    <div id="theme-gallery-header">
-      <span>
-        {{ $t('exhibition.theme.romanLabel') }} {{ roman }} | <span class="bold">{{ title }}</span>
-        <span v-if="selectedSub" class="bold"> ▪ {{ selectedSub.title }}</span> | {{ $t('exhibition.theme.galleryLabel') }}
-      </span>
-    </div>
-
-    <div id="theme-gallery-content">
-      <div id="theme-gallery-objects">
-        <RecordGrid :records="rows" :action-label="$t('exhibition.action.seeDatabaseEntry')">
-          <template #empty><p class="no-results">{{ $t('exhibition.theme.noRecords') }}</p></template>
-        </RecordGrid>
-      </div>
-
-      <div class="subtheme-filter" v-if="subThemes.length">
-        <div class="options-label">{{ $t('exhibition.theme.filterBySubtheme') }}</div>
-        <select class="legacy-select" :value="subIndex ?? ''" @change="onSubThemeChange">
-          <option value="">{{ $t('exhibition.theme.selectSubtheme') }}</option>
-          <option v-for="sub in subThemes" :key="sub.id" :value="sub.index">
-            {{ sub.index }}. {{ sub.title }}
-          </option>
-        </select>
-        <div class="reset-container" v-if="subIndex">
-          <button class="legacy-button" @click="router.push(`/theme-gallery/${route.params.id}`)">
-            {{ $t('exhibition.theme.seeAllInTheme') }}
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="loader" v-else>{{ $t('exhibition.theme.notInExhibition') }}</div>
+  <div class="loader" v-else>{{ t('exhibition.theme.notInExhibition') }}</div>
 </template>
 
 <style scoped>
-#theme-gallery-container {
-  background: var(--secondary-color);
-  width: 100%;
-  min-height: 400px;
-  padding-bottom: 30px;
-}
-#theme-gallery-header {
-  padding: 10px 30px 20px;
-  font-size: 18px;
-}
-.bold { font-weight: 700; }
-
-#theme-gallery-content { display: flex; gap: 20px; padding: 0 20px; }
-#theme-gallery-objects { flex: 1; min-width: 0; }
-.subtheme-filter { width: 260px; padding-top: 10px; }
-.options-label { font-weight: 700; }
-.reset-container { padding-top: 12px; }
+.theme-gallery { background: var(--secondary-color); width: 100%; min-height: 400px; padding-bottom: 30px; }
+.theme-gallery :deep(.mwnf-catalogue__body) { padding: 0 20px; }
 .no-results { padding: 30px 10px; font-style: italic; }
-
-@media only screen and (max-width: 974px) {
-  #theme-gallery-content { flex-direction: column-reverse; }
-  .subtheme-filter { width: 100%; }
-}
 </style>

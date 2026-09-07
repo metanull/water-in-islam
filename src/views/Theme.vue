@@ -1,20 +1,30 @@
 <script setup>
 import { computed, ref, watch, onMounted } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
-import {
-  themes, aboutTheme, themeByRouteId, themeRouteId, themeText, pictureText,
-  themePictures, itemRoute, labelOf, tr, defaultLang, md, mdInline,
-  exhibitionTitle, exhibitionSubtitle,
-} from '../composables/useExhibitionData.js'
-import { pictureParent, itemDetailString } from '../composables/useThemePresentation.js'
-import { termsForText, glossaryFor } from '../composables/useGlossary.js'
+import { EssayView } from '@metanull/viewer-layout/views'
 import { useI18n } from '@metanull/viewer-core'
+import {
+  aboutTheme, owningTheme, romanFor, themeByRouteId, themePictures, themeText,
+} from '../composables/themes.js'
+import { aboutSpec, themeNodeRoute, themeSpec } from '../composables/themeSpecs.js'
+import { pictureParent, itemDetailString } from '../composables/useThemePresentation.js'
+import {
+  itemRoute, labelOf, tr, defaultLang, md, mdInline, exhibitionTitle, exhibitionSubtitle,
+} from '../composables/useExhibitionData.js'
 
 const { t, locale } = useI18n()
 
-// The theme page — legacy's ThemeComponent, which also serves /about by
-// rendering the About theme (display order 1) with the exhibition's own title
-// and sub-title in place of the theme's.
+// The theme page — legacy's ThemeComponent, now an EssayView spec
+// (composables/themeSpecs.js) for the shell (heading, quote/body, the
+// glossary popup, the tour's previous/next), with this family's own
+// picture→parent indirection and its related-works toggle built directly in
+// the `panel`/`thumbnails`/`after-body` slots — see themeSpecs.js for why
+// they cannot be the default `items` machinery. Also serves /about (About.vue),
+// which renders the About theme (display order 1) with the exhibition's own
+// title and sub-title in place of the theme's, and no picture apparatus:
+// EssayView's `about` mode drops the whole side column unconditionally, so
+// the selection strip and panel this file otherwise renders have nothing to
+// attach to there.
 //
 // URL shape, kept from legacy so a legacy link still resolves:
 //   /theme/:id/:subtheme?/:image?
@@ -49,6 +59,8 @@ const subTheme = computed(() => {
 /** The node whose text and pictures the page shows: a sub-theme, or the theme. */
 const node = computed(() => subTheme.value ?? theme.value)
 
+const spec = computed(() => (props.aboutMode ? aboutSpec : themeSpec))
+
 const pictures = computed(() => themePictures(node.value))
 
 // ── Related works ──────────────────────────────────────────────────────────
@@ -81,6 +93,13 @@ const strip = computed(() =>
 )
 
 // ── Selection ──────────────────────────────────────────────────────────────
+//
+// Kept as this page's own state rather than EssayView's `items`/`selected`:
+// a curated picture is a distinct id space from the catalogue's items (its
+// parent, when it has one — see `pictureParent`), several pictures can share
+// one parent with different crops and different curated text, and a picture
+// whose parent was not exported still has to render its own image. None of
+// that is a "record by id" the default panel can select among.
 
 const selectedId = ref(null)
 
@@ -117,8 +136,12 @@ function select(picture) {
 }
 
 // ── Text ───────────────────────────────────────────────────────────────────
+//
+// The quote and the body (legacy's "presentation") are the spec's own —
+// `themeSpec`/`aboutSpec` name the fields and EssayView renders them, glossary
+// terms marked in place. The two-tier heading (the owning theme's title, then
+// the sub-theme's or "Overview") is this page's own, in the `#header` slot.
 
-const nodeText = computed(() => themeText(node.value, locale.value))
 const themeTitle = computed(
   () => themeText(theme.value, locale.value).title ?? theme.value?.internal_name ?? ''
 )
@@ -129,49 +152,20 @@ const heading = computed(() =>
 
 const subHeading = computed(() => {
   if (props.aboutMode) return exhibitionSubtitle(locale.value)
-  if (subTheme.value) return nodeText.value.title ?? subTheme.value.internal_name ?? ''
+  if (subTheme.value) return themeText(subTheme.value, locale.value).title ?? subTheme.value.internal_name ?? ''
   return t('exhibition.theme.overview')
 })
 
-// Glossary highlighting. Legacy asked the API which terms occur in each block
-// and rewrote the HTML in place; here the same match runs against the
-// package's own glossary — see `termsForText` — and the renderer marks the
-// occurrences as it parses, so nothing rewrites rendered HTML.
-function withGlossary(text) {
-  if (!text) return ''
-  return md(text, { glossary: glossaryFor(termsForText(text, locale.value)) })
-}
-
-const quoteHtml = computed(() => withGlossary(nodeText.value.quote))
-const presentationHtml = computed(() => withGlossary(nodeText.value.presentation))
-
-const selectedText = computed(() =>
-  selected.value ? pictureText(node.value, selected.value, locale.value) : {}
-)
-const contextualHtml = computed(() => withGlossary(selectedText.value.contextual_description))
-
-// The glossary pop-up. One definition at a time, as legacy did.
-const openTerm = ref(null)
-const terms = computed(() => {
-  const map = new Map()
-  for (const source of [nodeText.value.quote, nodeText.value.presentation, selectedText.value.contextual_description]) {
-    for (const term of termsForText(source, locale.value)) map.set(term.id, term)
-  }
-  return map
-})
-
-function onProseClick(event) {
-  const link = event.target.closest?.('.gloss-term')
-  if (!link) return
-  event.preventDefault()
-  openTerm.value = terms.value.get(link.dataset.gid) ?? null
-}
+// The numeral is always the *owning theme's* — legacy never numbered a
+// sub-theme on its own page, only the theme it belongs to — and empty for the
+// About theme (`romanFor(1)` is ''), so no separate about-mode branch is needed.
+const roman = computed(() => romanFor(owningTheme(theme.value)?.display_order ?? 1))
 
 // ── The picture being shown ────────────────────────────────────────────────
 
 function captionFor(picture) {
   const parent = pictureParent(picture)
-  const text = pictureText(node.value, picture, locale.value)
+  const text = pictureTextFor(picture)
   return {
     imageCaption: text.image_caption ?? '',
     name: parent ? labelOf('items', parent.id) : '',
@@ -180,11 +174,24 @@ function captionFor(picture) {
   }
 }
 
+// Picture-specific curated text is keyed `<node id>/<picture item id>` — see
+// composables/themes.js. Read directly here (rather than through the spec)
+// because it varies with which picture is selected, not with the node.
+function pictureTextFor(picture) {
+  if (!node.value?.id || !picture?.picture_item_id) return {}
+  return tr('themes', `${node.value.id}/${picture.picture_item_id}`, locale.value)
+}
+
 const selectedCaption = computed(() => (selected.value ? captionFor(selected.value) : null))
 
 const selectedSheet = computed(() => {
   const parent = selectedCaption.value?.parent
   return parent ? tr('items', parent.id, defaultLang) : {}
+})
+
+const contextualHtml = computed(() => {
+  const value = selected.value ? pictureTextFor(selected.value).contextual_description : ''
+  return value ? md(value) : ''
 })
 
 /** The related targets of the selected picture, if it is a source. */
@@ -207,60 +214,154 @@ function reciprocalText(link) {
   return link?.reciprocal_descriptions?.[locale.value] ?? link?.reciprocal_descriptions?.en ?? ''
 }
 
-// ── Previous / next ────────────────────────────────────────────────────────
-//
-// A verbatim port of legacy's `themeNavigation`: the tour runs About → theme 1
-// overview → its sub-themes → theme 2 overview → …, and back the same way.
-
-function subCount(routeId) {
-  return (themeByRouteId(routeId)?.sub_themes ?? []).length
-}
-
-const lastRouteId = computed(() =>
-  themes.value.length ? themeRouteId(themes.value[themes.value.length - 1]) : 0
-)
-
-const previous = computed(() => {
-  if (props.aboutMode) return null
-  const id = Number(route.params.id)
-  const sub = subIndex.value
-  if (id === 1 && sub === null) return '/about'
-  if (sub === 1) return `/theme/${id}/overview`
-  if (sub === null) {
-    const count = subCount(id - 1)
-    return count ? `/theme/${id - 1}/${count}` : `/theme/${id - 1}/overview`
-  }
-  return `/theme/${id}/${sub - 1}`
-})
-
-const next = computed(() => {
-  if (props.aboutMode) return '/theme/1/overview'
-  const id = Number(route.params.id)
-  const sub = subIndex.value
-  const count = subCount(id)
-  if (sub === null) return count ? `/theme/${id}/1` : nextTheme(id)
-  if (sub >= count) return nextTheme(id)
-  return `/theme/${id}/${sub + 1}`
-})
-
-function nextTheme(id) {
-  return id < lastRouteId.value ? `/theme/${id + 1}/overview` : null
-}
+// ── Sub-theme strip ─────────────────────────────────────────────────────────
 
 const subThemeNav = computed(() =>
   (theme.value?.sub_themes ?? []).map((sub, index) => ({
     index: index + 1,
     title: themeText(sub, locale.value).title ?? sub.internal_name ?? '',
+    to: themeNodeRoute(sub),
   }))
 )
 
-const routeId = computed(() => themeRouteId(theme.value))
+const overviewTo = computed(() => (theme.value ? themeNodeRoute(theme.value) : null))
+
+// The forward arrow is decoration, not a translatable text — it needs saying
+// only once, and this page writes it twice: the tour's own `#navigation`
+// slot, and the About page's one-way link into the tour where EssayView's
+// `about` mode drops that slot outright (`#after`, below).
+const nextArrow = '→'
 </script>
 
 <template>
-  <div class="theme-component-wrapper" v-if="node">
-    <div class="theme-component">
-      <!-- Thumbnail strip -->
+  <EssayView v-if="node" :spec="spec" :id="node.id" class="theme-page" :class="{ 'about-mode': aboutMode }">
+    <template #header>
+      <div class="theme-component-theme-title">
+        <span v-if="roman" class="roman-label">{{ t('exhibition.theme.romanLabel') }} {{ roman }} ▪ </span>{{ heading }}
+      </div>
+      <div class="theme-component-title">{{ subHeading }}</div>
+    </template>
+
+    <template #after-body>
+      <template v-if="!aboutMode">
+        <div class="theme-component-selected-justification prose" v-if="contextualHtml" v-html="contextualHtml"></div>
+
+        <!-- Related items: the selected picture as a source -->
+        <div class="related-items-container" v-if="selectedTargets.length">
+          <div class="related-items-header">{{ t('exhibition.related.items') }}</div>
+          <div class="related-items-images-container">
+            <div class="related-items-image main-image">
+              <img :src="selected.image_url" :alt="selectedCaption.name" />
+              <div class="thumbnail-text">
+                <span class="italic" v-html="mdInline(selectedCaption.name)"></span>
+                <span v-if="selectedCaption.detail">, {{ selectedCaption.detail }}</span>
+              </div>
+            </div>
+            <div
+              v-for="entry in selectedTargets"
+              :key="entry.picture.picture_item_id"
+              class="related-items-image"
+            >
+              <img
+                :src="entry.picture.image_url"
+                :alt="captionFor(entry.picture).name"
+                @click="select(entry.picture)"
+              />
+              <div class="thumbnail-text">
+                <span class="italic" v-html="mdInline(captionFor(entry.picture).name)"></span>
+                <span v-if="captionFor(entry.picture).detail">, {{ captionFor(entry.picture).detail }}</span>
+              </div>
+              <div class="related-relation" v-if="relationText(entry.link)">{{ relationText(entry.link) }}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Related to: the selected picture as a target -->
+        <div class="related-to-container" v-if="selectedSource">
+          <div class="related-to-header">{{ t('exhibition.related.items') }}</div>
+          <div class="theme-component-selected-justification reciprocal-description">
+            {{ reciprocalText(selectedSource.link) || t('exhibition.related.reciprocal') }}
+          </div>
+          <div class="related-to-image">
+            <img
+              :src="selectedSource.source.image_url"
+              :alt="captionFor(selectedSource.source).name"
+              @click="select(selectedSource.source)"
+            />
+            <div class="thumbnail-text">
+              <span class="italic" v-html="mdInline(captionFor(selectedSource.source).name)"></span>
+              <span v-if="captionFor(selectedSource.source).detail">, {{ captionFor(selectedSource.source).detail }}</span>
+            </div>
+          </div>
+        </div>
+      </template>
+    </template>
+
+    <!-- Tour navigation, then the sub-theme list — legacy's order. About mode
+         has neither: EssayView's `about` drops this whole block, and its
+         one-way "Next: Theme I" link lives in the `after` slot below. -->
+    <template #navigation="{ previous, next }">
+      <div class="theme-component-navigation-next-previous-wrapper">
+        <RouterLink v-if="previous" :to="themeNodeRoute(previous)" class="theme-nav previous">← {{ t('exhibition.theme.previous') }}</RouterLink>
+        <span v-else></span>
+        <RouterLink v-if="next" :to="themeNodeRoute(next)" class="theme-nav next">{{ t('exhibition.theme.next') }} {{ nextArrow }}</RouterLink>
+      </div>
+
+      <div class="theme-component-link-navigation-container" v-if="subThemeNav.length">
+        <div class="theme-component-link-navigation-section-label">{{ t('exhibition.theme.inThisTheme') }}</div>
+        <div class="theme-component-link-navigation-overview">
+          <RouterLink :to="overviewTo" :class="{ bold: subIndex === null }">{{ t('exhibition.theme.overview') }}</RouterLink>
+        </div>
+        <div class="theme-component-link-navigation" v-for="entry in subThemeNav" :key="entry.index">
+          <RouterLink :to="entry.to" :class="{ bold: subIndex === entry.index }">{{ entry.index }}. {{ entry.title }}</RouterLink>
+        </div>
+      </div>
+    </template>
+
+    <!-- About mode only: EssayView drops the tour nav for `about` nodes, and
+         legacy's About page still points forward into the tour. -->
+    <template #after="{ next }">
+      <div class="theme-component-navigation-next-previous-wrapper" v-if="aboutMode && next">
+        <span></span>
+        <RouterLink :to="themeNodeRoute(next)" class="theme-nav next">{{ t('exhibition.theme.next') }} {{ nextArrow }}</RouterLink>
+      </div>
+    </template>
+
+    <template #panel v-if="!aboutMode">
+      <!-- Selected picture -->
+      <div class="theme-component-selected-container" v-if="selected">
+        <div class="theme-component-selected-image">
+          <img :src="selected.image_url" :alt="selectedCaption.name" />
+        </div>
+        <div class="theme-component-selected-details-wrapper">
+          <div class="theme-component-selected-detail title">
+            <span v-if="selectedCaption.imageCaption">{{ selectedCaption.imageCaption }}, </span>
+            <span v-html="mdInline(selectedCaption.name)"></span>
+          </div>
+          <div class="theme-component-selected-detail" v-if="selectedSheet.alternate_name">
+            {{ t('sheet.field.alsoKnownAs') }}: <span v-html="mdInline(selectedSheet.alternate_name)"></span>
+          </div>
+          <div class="theme-component-selected-detail" v-if="selectedCaption.parent?.artist_names?.length">
+            {{ selectedCaption.parent.artist_names.join(', ') }}
+          </div>
+          <div class="theme-component-selected-detail" v-if="selectedSheet.dates">{{ selectedSheet.dates }}</div>
+          <div class="theme-component-selected-detail" v-if="selectedCaption.detail">{{ selectedCaption.detail }}</div>
+          <RouterLink
+            v-if="selectedCaption.parent"
+            class="theme-component-selected-detail database-entry-link"
+            :to="itemRoute(selectedCaption.parent)"
+          >{{ t('exhibition.theme.seeItemEntry') }}</RouterLink>
+          <!-- A picture whose parent is not a member of this exhibition says
+               so rather than linking nowhere. -->
+          <div class="theme-component-selected-detail unresolved" v-else>
+            {{ t('exhibition.theme.recordNotInSite') }}
+          </div>
+        </div>
+      </div>
+      <div v-else class="theme-component-no-images">{{ t('exhibition.theme.additionalContent') }}</div>
+    </template>
+
+    <template #thumbnails v-if="!aboutMode">
       <div class="theme-component-images-wrapper">
         <div class="theme-component-images" v-if="strip.length">
           <div
@@ -291,174 +392,53 @@ const routeId = computed(() => themeRouteId(theme.value))
             <input type="checkbox" v-model="showAll" />
             <!-- Two whole sentences rather than a word swapped inside one: a
                  translator has to be able to move every part of a text. -->
-            <span>{{ showAll ? $t('exhibition.theme.hideRelatedWorks') : $t('exhibition.theme.addRelatedWorks') }}</span>
+            <span>{{ showAll ? t('exhibition.theme.hideRelatedWorks') : t('exhibition.theme.addRelatedWorks') }}</span>
           </label>
         </div>
       </div>
+    </template>
+  </EssayView>
 
-      <div class="theme-component-content-wrapper">
-        <!-- Selected picture -->
-        <div class="theme-component-selected-container" v-if="selected">
-          <div class="theme-component-selected-image">
-            <img :src="selected.image_url" :alt="selectedCaption.name" />
-          </div>
-          <div class="theme-component-selected-details-wrapper">
-            <div class="theme-component-selected-detail title">
-              <span v-if="selectedCaption.imageCaption">{{ selectedCaption.imageCaption }}, </span>
-              <span v-html="mdInline(selectedCaption.name)"></span>
-            </div>
-            <div class="theme-component-selected-detail" v-if="selectedSheet.alternate_name">
-              {{ $t('sheet.field.alsoKnownAs') }}: <span v-html="mdInline(selectedSheet.alternate_name)"></span>
-            </div>
-            <div class="theme-component-selected-detail" v-if="selectedCaption.parent?.artist_names?.length">
-              {{ selectedCaption.parent.artist_names.join(', ') }}
-            </div>
-            <div class="theme-component-selected-detail" v-if="selectedSheet.dates">{{ selectedSheet.dates }}</div>
-            <div class="theme-component-selected-detail" v-if="selectedCaption.detail">{{ selectedCaption.detail }}</div>
-            <RouterLink
-              v-if="selectedCaption.parent"
-              class="theme-component-selected-detail database-entry-link"
-              :to="itemRoute(selectedCaption.parent, defaultLang)"
-            >{{ $t('exhibition.theme.seeItemEntry') }}</RouterLink>
-            <!-- Decision Q3: a picture whose parent is not a member of this
-                 exhibition says so rather than linking nowhere. -->
-            <div class="theme-component-selected-detail unresolved" v-else>
-              {{ $t('exhibition.theme.recordNotInSite') }}
-            </div>
-          </div>
-        </div>
-        <div v-else class="theme-component-no-images">{{ $t('exhibition.theme.additionalContent') }}</div>
-
-        <!-- Text column -->
-        <div class="theme-component-content" @click="onProseClick">
-          <div class="theme-component-theme-title">{{ heading }}</div>
-          <div class="theme-component-title">{{ subHeading }}</div>
-
-          <div class="theme-component-quote prose" v-if="quoteHtml" v-html="quoteHtml"></div>
-          <div class="theme-component-presentation prose" v-if="presentationHtml" v-html="presentationHtml"></div>
-          <div class="theme-component-selected-justification prose" v-if="contextualHtml" v-html="contextualHtml"></div>
-
-          <!-- Related items: the selected picture as a source -->
-          <div class="related-items-container" v-if="selectedTargets.length">
-            <div class="related-items-header">{{ t('exhibition.related.items') }}</div>
-            <div class="related-items-images-container">
-              <div class="related-items-image main-image">
-                <img :src="selected.image_url" :alt="selectedCaption.name" />
-                <div class="thumbnail-text">
-                  <span class="italic" v-html="mdInline(selectedCaption.name)"></span>
-                  <span v-if="selectedCaption.detail">, {{ selectedCaption.detail }}</span>
-                </div>
-              </div>
-              <div
-                v-for="entry in selectedTargets"
-                :key="entry.picture.picture_item_id"
-                class="related-items-image"
-              >
-                <img
-                  :src="entry.picture.image_url"
-                  :alt="captionFor(entry.picture).name"
-                  @click="select(entry.picture)"
-                />
-                <div class="thumbnail-text">
-                  <span class="italic" v-html="mdInline(captionFor(entry.picture).name)"></span>
-                  <span v-if="captionFor(entry.picture).detail">, {{ captionFor(entry.picture).detail }}</span>
-                </div>
-                <div class="related-relation" v-if="relationText(entry.link)">{{ relationText(entry.link) }}</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Related to: the selected picture as a target -->
-          <div class="related-to-container" v-if="selectedSource">
-            <div class="related-to-header">{{ t('exhibition.related.items') }}</div>
-            <div class="theme-component-selected-justification reciprocal-description">
-              {{ reciprocalText(selectedSource.link) || t('exhibition.related.reciprocal') }}
-            </div>
-            <div class="related-to-image">
-              <img
-                :src="selectedSource.source.image_url"
-                :alt="captionFor(selectedSource.source).name"
-                @click="select(selectedSource.source)"
-              />
-              <div class="thumbnail-text">
-                <span class="italic" v-html="mdInline(captionFor(selectedSource.source).name)"></span>
-                <span v-if="captionFor(selectedSource.source).detail">, {{ captionFor(selectedSource.source).detail }}</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Tour navigation -->
-          <div class="theme-component-navigation-next-previous-wrapper">
-            <RouterLink v-if="previous" :to="previous" class="theme-nav previous">← {{ $t('exhibition.theme.previous') }}</RouterLink>
-            <span v-else></span>
-            <RouterLink v-if="next" :to="next" class="theme-nav next">{{ $t('exhibition.theme.next') }} →</RouterLink>
-          </div>
-
-          <div class="theme-component-link-navigation-container" v-if="subThemeNav.length && !aboutMode">
-            <div class="theme-component-link-navigation-section-label">{{ $t('exhibition.theme.inThisTheme') }}</div>
-            <div class="theme-component-link-navigation-overview">
-              <RouterLink
-                :to="`/theme/${routeId}/overview`"
-                :class="{ bold: subIndex === null }"
-              >{{ $t('exhibition.theme.overview') }}</RouterLink>
-            </div>
-            <div class="theme-component-link-navigation" v-for="entry in subThemeNav" :key="entry.index">
-              <RouterLink
-                :to="`/theme/${routeId}/${entry.index}`"
-                :class="{ bold: subIndex === entry.index }"
-              >{{ entry.index }}. {{ entry.title }}</RouterLink>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Glossary pop-up -->
-    <div class="glossary-entry-container" v-if="openTerm">
-      <button class="glossary-close" @click="openTerm = null" :aria-label="$t('core.action.close')">✕</button>
-      <div class="glossary-header">{{ t('record.glossary.heading') }}</div>
-      <div class="glossary-entry">
-        <div class="glossary-word">{{ openTerm.word }}</div>
-        <div class="glossary-definition prose" v-html="md(openTerm.definition)"></div>
-      </div>
-    </div>
-  </div>
-
-  <div class="loader" v-else>{{ $t('exhibition.theme.notInExhibition') }}</div>
+  <div class="loader" v-else>{{ t('exhibition.theme.notInExhibition') }}</div>
 </template>
 
 <style scoped>
-.theme-component-wrapper {
-  position: relative;
-  width: 100%;
-  background: var(--secondary-color);
-  padding-bottom: 40px;
+/* `class="theme-page"` lands on EssayView's own root element (Vue passes a
+   parent's class through to a child's root), which is why this rule needs no
+   `:deep()` — everything after it styles our own slot content, which keeps
+   this file's scope wherever EssayView renders it, through `:deep()` only
+   because it sits below that root rather than being it. */
+.theme-page { background: var(--secondary-color); }
+
+/* ── Heading ──────────────────────────────────────────────────────────────── */
+.theme-page :deep(.theme-component-theme-title) {
+  background: var(--contrast-color);
+  color: var(--contrast-text-color);
+  font-size: 22px;
+  font-weight: 700;
+  padding: 8px 12px;
 }
-.theme-component { display: flex; flex-direction: column; width: 100%; }
+.theme-page :deep(.theme-component-title) { font-size: 18px; font-weight: 700; padding: 12px 0 4px; }
 
 /* ── Thumbnail strip ─────────────────────────────────────────────────────── */
-.theme-component-images-wrapper { width: 100%; padding: 20px 30px 0; }
-.theme-component-images {
+.theme-page :deep(.theme-component-images-wrapper) { width: 100%; padding: 0 0 12px; }
+.theme-page :deep(.theme-component-images) {
   display: flex;
   gap: 14px;
   overflow-x: auto;
   padding-bottom: 8px;
 }
-.theme-component-image {
-  position: relative;
-  flex: 0 0 auto;
-  width: 130px;
-}
-.theme-component-image img {
+.theme-page :deep(.theme-component-image) { position: relative; flex: 0 0 auto; width: 130px; }
+.theme-page :deep(.theme-component-image img) {
   width: 130px;
   height: 130px;
   object-fit: cover;
   cursor: pointer;
   display: block;
 }
-.theme-component-image.border img { outline: 4px solid var(--contrast-color); outline-offset: -4px; }
-.theme-component-image.related-overlay img { opacity: 0.75; }
-.thumbnail-text {
+.theme-page :deep(.theme-component-image.border img) { outline: 4px solid var(--contrast-color); outline-offset: -4px; }
+.theme-page :deep(.theme-component-image.related-overlay img) { opacity: 0.75; }
+.theme-page :deep(.thumbnail-text) {
   display: none;
   position: absolute;
   top: 100%;
@@ -470,96 +450,58 @@ const routeId = computed(() => themeRouteId(theme.value))
   background: var(--main-color);
   color: var(--main-text-color);
 }
-.theme-component-image:hover .thumbnail-text,
-.related-items-image:hover .thumbnail-text,
-.related-to-image:hover .thumbnail-text { display: block; }
-.italic { font-style: italic; }
+.theme-page :deep(.theme-component-image:hover .thumbnail-text),
+.theme-page :deep(.related-items-image:hover .thumbnail-text),
+.theme-page :deep(.related-to-image:hover .thumbnail-text) { display: block; }
+.theme-page :deep(.italic) { font-style: italic; }
 
-.thumbnails-section-controls { padding: 8px 0 0; }
-.toggle { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
+.theme-page :deep(.thumbnails-section-controls) { padding: 8px 0 0; }
+.theme-page :deep(.toggle) { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
 
-/* ── Selected picture + text ─────────────────────────────────────────────── */
-.theme-component-content-wrapper { display: flex; width: 100%; padding: 20px 30px; gap: 30px; }
-.theme-component-selected-container { width: 45%; }
-.theme-component-selected-image img { width: 100%; object-fit: contain; max-height: 520px; }
-.theme-component-selected-details-wrapper { padding-top: 12px; font-size: 15px; line-height: 1.45; }
-.theme-component-selected-detail.title { font-weight: 700; }
-.database-entry-link { display: inline-block; margin-top: 10px; color: var(--link-blue); }
-.unresolved { margin-top: 10px; font-style: italic; color: var(--shadow-grey); }
-.theme-component-no-images { width: 45%; padding: 40px 0; font-style: italic; }
+/* ── Selected picture panel ──────────────────────────────────────────────── */
+.theme-page :deep(.theme-component-selected-image img) { width: 100%; object-fit: contain; max-height: 420px; }
+.theme-page :deep(.theme-component-selected-details-wrapper) { padding-top: 12px; font-size: 15px; line-height: 1.45; }
+.theme-page :deep(.theme-component-selected-detail.title) { font-weight: 700; }
+.theme-page :deep(.database-entry-link) { display: inline-block; margin-top: 10px; color: var(--link-blue); }
+.theme-page :deep(.unresolved) { margin-top: 10px; font-style: italic; color: var(--shadow-grey); }
+.theme-page :deep(.theme-component-no-images) { padding: 40px 0; font-style: italic; }
 
-.theme-component-content { flex: 1; min-width: 0; }
-.theme-component-theme-title {
-  background: var(--contrast-color);
-  color: var(--contrast-text-color);
-  font-size: 22px;
-  font-weight: 700;
-  padding: 8px 12px;
-}
-.theme-component-title { font-size: 18px; font-weight: 700; padding: 12px 0 4px; }
-.theme-component-quote { font-style: italic; padding: 8px 0; }
-.theme-component-presentation,
-.theme-component-selected-justification { padding: 8px 0; line-height: 1.6; }
-
-:deep(.gloss-term) {
-  color: var(--link-blue);
-  text-decoration: underline dotted;
-  cursor: pointer;
-}
-
-.related-items-container, .related-to-container { padding-top: 20px; }
-.related-items-header, .related-to-header { font-weight: 700; margin-bottom: 8px; }
-.related-items-images-container { display: flex; flex-wrap: wrap; gap: 14px; }
-.related-items-image, .related-to-image { position: relative; width: 130px; }
-.related-items-image img, .related-to-image img {
+/* ── Body extras ──────────────────────────────────────────────────────────── */
+.theme-page :deep(.theme-component-selected-justification) { padding: 8px 0; line-height: 1.6; }
+.theme-page :deep(.related-items-container),
+.theme-page :deep(.related-to-container) { padding-top: 20px; }
+.theme-page :deep(.related-items-header),
+.theme-page :deep(.related-to-header) { font-weight: 700; margin-bottom: 8px; }
+.theme-page :deep(.related-items-images-container) { display: flex; flex-wrap: wrap; gap: 14px; }
+.theme-page :deep(.related-items-image),
+.theme-page :deep(.related-to-image) { position: relative; width: 130px; }
+.theme-page :deep(.related-items-image img),
+.theme-page :deep(.related-to-image img) {
   width: 130px; height: 130px; object-fit: cover; cursor: pointer; display: block;
 }
-.related-items-image.main-image img { outline: 4px solid var(--main-color); outline-offset: -4px; cursor: default; }
-.related-relation { font-size: 12px; padding-top: 4px; }
-.reciprocal-description { font-style: italic; }
+.theme-page :deep(.related-items-image.main-image img) { outline: 4px solid var(--main-color); outline-offset: -4px; cursor: default; }
+.theme-page :deep(.related-relation) { font-size: 12px; padding-top: 4px; }
+.theme-page :deep(.reciprocal-description) { font-style: italic; }
 
-.theme-component-navigation-next-previous-wrapper {
+/* ── Tour + sub-theme navigation ─────────────────────────────────────────── */
+.theme-page :deep(.theme-component-navigation-next-previous-wrapper) {
   display: flex;
   justify-content: space-between;
   padding: 25px 0 10px;
   font-weight: 700;
 }
-.theme-nav { color: var(--secondary-text-color); text-decoration: none; }
-.theme-nav:hover { background: var(--contrast-color); }
+.theme-page :deep(.theme-nav) { color: var(--secondary-text-color); text-decoration: none; }
+.theme-page :deep(.theme-nav:hover) { background: var(--contrast-color); }
 
-.theme-component-link-navigation-container { padding-top: 15px; }
-.theme-component-link-navigation-section-label { font-weight: 700; }
-.theme-component-link-navigation-overview a,
-.theme-component-link-navigation a { color: var(--secondary-text-color); text-decoration: none; }
-.theme-component-link-navigation-overview a:hover,
-.theme-component-link-navigation a:hover { background: var(--contrast-color); }
-.bold { font-weight: 700; }
-
-/* ── Glossary pop-up ─────────────────────────────────────────────────────── */
-.glossary-entry-container {
-  position: fixed;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 150;
-  width: min(520px, 92vw);
-  max-height: 50vh;
-  overflow-y: auto;
-  padding: 30px 20px 20px;
-  background: var(--secondary-color);
-  border: 3px solid var(--contrast-color);
-  box-shadow: 0 4px 16px 2px var(--shadow-grey);
-}
-.glossary-close {
-  position: absolute; top: 6px; right: 10px;
-  background: none; border: none; font-size: 18px; cursor: pointer;
-}
-.glossary-header { font-weight: 700; margin-bottom: 6px; }
-.glossary-word { font-weight: 700; font-style: italic; }
+.theme-page :deep(.theme-component-link-navigation-container) { padding-top: 15px; }
+.theme-page :deep(.theme-component-link-navigation-section-label) { font-weight: 700; }
+.theme-page :deep(.theme-component-link-navigation-overview a),
+.theme-page :deep(.theme-component-link-navigation a) { color: var(--secondary-text-color); text-decoration: none; }
+.theme-page :deep(.theme-component-link-navigation-overview a:hover),
+.theme-page :deep(.theme-component-link-navigation a:hover) { background: var(--contrast-color); }
+.theme-page :deep(.bold) { font-weight: 700; }
 
 @media only screen and (max-width: 974px) {
-  .theme-component-content-wrapper { flex-direction: column; }
-  .theme-component-selected-container, .theme-component-no-images { width: 100%; }
-  .thumbnail-text { display: none !important; }
+  .theme-page :deep(.thumbnail-text) { display: none !important; }
 }
 </style>

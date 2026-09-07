@@ -65,6 +65,58 @@ describe('website smoke test', () => {
     app.unmount()
   }, 60000)
 
+  // The five theme-family pages run on composed views (metanull/water-in-islam#32):
+  // the accordion, the essay, the results grid and the link list are the
+  // package's; what only this exhibition has — the picture→parent
+  // indirection, the related-works toggle, the tour heading — fills their
+  // slots and spec functions (composables/themes.js, themeSpecs.js).
+  it('renders the themes list on the composed accordion', async () => {
+    const { app, host } = await mountSite('#/themes')
+    await vi.waitFor(() => expect(host.querySelector('.mwnf-cards--accordion')).not.toBeNull(), { timeout: 20000 })
+    expect(host.querySelectorAll('.mwnf-cards__details').length).toBeGreaterThan(0)
+    app.unmount()
+  }, 30000)
+
+  it('renders a theme on the composed essay view', async () => {
+    const { app, host } = await mountSite('#/theme/1')
+    await vi.waitFor(() => expect(host.querySelector('.mwnf-essay')).not.toBeNull(), { timeout: 20000 })
+    expect(host.querySelector('.mwnf-essay').className).not.toContain('mwnf-essay--about')
+    // The Roman label sits beside the theme's own title, in the `#header` slot.
+    expect(host.querySelector('.theme-component-theme-title').textContent).toMatch(/[IVX]/)
+    expect(host.querySelector('.mwnf-essay__side')).not.toBeNull()
+    expect(host.querySelector('.theme-component-selected-container, .theme-component-no-images')).not.toBeNull()
+    expect(host.querySelector('.mwnf-essay__nav')).not.toBeNull()
+    app.unmount()
+  }, 30000)
+
+  it('renders the theme gallery on the composed results view', async () => {
+    const { app, host } = await mountSite('#/theme-gallery/1')
+    await vi.waitFor(() => expect(host.querySelector('.mwnf-grid__tile')).not.toBeNull(), { timeout: 20000 })
+    expect(host.querySelector('.mwnf-catalogue')).not.toBeNull()
+    app.unmount()
+  }, 30000)
+
+  it('renders the related content on the composed link list', async () => {
+    const { app, host } = await mountSite('#/related')
+    await vi.waitFor(() => expect(host.querySelector('.mwnf-link-list')).not.toBeNull(), { timeout: 20000 })
+    // This exhibition's related_content.json carries five entries, so the
+    // page must show groups, not the empty state.
+    expect(host.querySelector('.mwnf-link-list__groups')).not.toBeNull()
+    expect(host.querySelectorAll('.mwnf-link-list__item').length).toBeGreaterThan(0)
+    app.unmount()
+  }, 30000)
+
+  it('renders about on the composed essay view, in about mode', async () => {
+    const { app, host } = await mountSite('#/about')
+    await vi.waitFor(() => expect(host.querySelector('.mwnf-essay')).not.toBeNull(), { timeout: 20000 })
+    expect(host.querySelector('.mwnf-essay').className).toContain('mwnf-essay--about')
+    // `about` drops EssayView's own side column; the picture panel this
+    // family otherwise shows has nothing to attach to on this page.
+    expect(host.querySelector('.mwnf-essay__side')).toBeNull()
+    expect(host.textContent).toContain(config.siteName)
+    app.unmount()
+  }, 30000)
+
   it('declares every canonical route by name, and every legacy shape as a redirect', () => {
     const names = config.extraViews.map((r) => r.name)
     for (const name of [

@@ -1,9 +1,11 @@
 import {
   itemById, labelOf, tr, defaultLang,
-  themePictures,
 } from './useExhibitionData.js'
 
-// Shared between the themes list, the theme page and the theme gallery.
+// Shared between the theme page and the theme gallery — what SectionCards'
+// `accordion` variant does not need `themeCover`/`pictureCaption`/`truncate`
+// for any more (it renders neither an image nor an excerpt), so only the
+// picture→parent indirection stays.
 //
 // A theme's selections point at `picture` items, which are NOT members of the
 // exhibition and therefore not in items.json — only their parents are. Every
@@ -28,28 +30,4 @@ export function itemDetailString(item) {
     sheet.location,
     labelOf('countries', item.country_id),
   ].filter(Boolean).join(', ')
-}
-
-/** The one-line caption legacy renders under a theme cover and on hover. */
-export function pictureCaption(picture) {
-  const parent = pictureParent(picture)
-  if (!parent) return ''
-  return [labelOf('items', parent.id), itemDetailString(parent)].filter(Boolean).join(', ')
-}
-
-/** The cover picture of a theme, falling back to its first selection. */
-export function themeCover(theme) {
-  const pictures = themePictures(theme)
-  if (!pictures.length) return null
-  return (
-    pictures.find(p => p.picture_item_id === theme?.cover_picture_item_id) ??
-    pictures[0]
-  )
-}
-
-/** Legacy's `truncate`: cut on the last space before `chars`, then ellipsis. */
-export function truncate(chars, text) {
-  if (!text) return ''
-  if (text.length <= chars) return text
-  return `${text.slice(0, text.lastIndexOf(' ', chars))}...`
 }

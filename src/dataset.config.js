@@ -85,7 +85,7 @@ export default {
       meta: meta('themes', 'themes', 'glossary', 'dynasties'),
     },
     {
-      path: '/theme-gallery/:id/:subtheme?',
+      path: '/theme-gallery/:id',
       name: 'theme-gallery',
       component: () => import('./views/ThemeGallery.vue'),
       meta: meta('themes', 'themes'),

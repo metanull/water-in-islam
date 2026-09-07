@@ -14,7 +14,7 @@ import {
 // `mdInline`/`mdStrip`, `loadEnglish`, `labelOf` and the two `visible` rules
 // below are viewer-core's, called once here and re-exported beside what is
 // genuinely this site's own — routes, legacy key mappings, chrome images,
-// the themes tree, the exhibition's own project override.
+// the exhibition's own project override. The themes tree is composables/themes.js.
 
 // English is the base language of every catalogue in the platform: every
 // list, label and fallback reads it. A record the visitor reads in another
@@ -22,7 +22,6 @@ import {
 export const defaultLang = 'en'
 
 export const exhibition = entityRef('exhibition')
-export const themeTree = entityRef('themes')
 export const relatedContent = entityRef('related_content')
 export const tags = entityRef('tags')
 export const countries = entityRef('countries')
@@ -145,95 +144,9 @@ export function partnerObjectsRoute(partner, page = 1) {
   }
 }
 
-// ── Themes ─────────────────────────────────────────────────────────────────
-//
-// themes.json is the ordered tree: top-level themes, each with its sub-themes
-// and its curated picture selections. Two rules the data fixes rather than
-// taste:
-//
-//   * Theme 0 ("About the Exhibition") is an ordinary top-level theme that the
-//     legacy client renders at /about and *skips* on /themes. Its display order
-//     is 1, so the themes list starts at display order 2 and numbers those
-//     "Theme I" upwards — which is why `romanFor` subtracts one.
-//   * The theme id in the keyspace is not the display order. The route carries
-//     `display_order - 1`, exactly as legacy's `theme.display - 1` did, so a
-//     legacy URL pasted after the `#` lands on the same theme.
-//
-// This tree moves to viewer-core's `useCollectionTree` in wave H; left as is
-// for now.
-
-export const themes = computed(() => themeTree.value ?? [])
-
-/** The About theme — display order 1, rendered at /about, absent from /themes. */
-export const aboutTheme = computed(
-  () => themes.value.find(t => t.display_order === 1) ?? null
-)
-
-/** The themes the /themes page lists: everything after the About theme. */
-export const listedThemes = computed(() =>
-  themes.value.filter(t => t.display_order > 1)
-)
-
-/** Route id ⇄ theme. Legacy's `/theme/:id` carries `display_order - 1`. */
-export function themeByRouteId(id) {
-  const n = Number(id)
-  return themes.value.find(t => t.display_order - 1 === n) ?? null
-}
-
-export function themeRouteId(theme) {
-  return (theme?.display_order ?? 1) - 1
-}
-
-/** Every node of the tree, top-level and sub-theme alike. */
-export const allThemeNodes = computed(() => {
-  const out = []
-  for (const theme of themes.value) {
-    out.push(theme)
-    for (const sub of theme.sub_themes ?? []) out.push(sub)
-  }
-  return out
-})
-
-export const themeById = computed(
-  () => new Map(allThemeNodes.value.map(t => [t.id, t]))
-)
-
-/** Legacy numbered its themes in Roman numerals, counting from the About theme. */
-export function romanFor(displayOrder) {
-  const lookup = [
-    ['M', 1000], ['CM', 900], ['D', 500], ['CD', 400], ['C', 100], ['XC', 90],
-    ['L', 50], ['XL', 40], ['X', 10], ['IX', 9], ['V', 5], ['IV', 4], ['I', 1],
-  ]
-  let n = displayOrder - 1
-  let out = ''
-  for (const [sym, value] of lookup) {
-    while (n >= value) { out += sym; n -= value }
-  }
-  return out
-}
-
-/** The picture selections of a theme, ordered as the curator set them. */
-export function themePictures(theme) {
-  return [...(theme?.pictures ?? [])].sort(
-    (a, b) => (a.display_order ?? 0) - (b.display_order ?? 0)
-  )
-}
-
-// ── Translations ───────────────────────────────────────────────────────────
-//
-// translations/themes.<lang>.json is keyed two ways: by theme id for the
-// theme's own title/quote/presentation, and by `<theme id>/<picture item id>`
-// for the curated text of one picture *in that theme*. The same picture in two
-// themes carries two different descriptions, which is why the pivot key exists.
-
-export function themeText(theme, lang = defaultLang) {
-  return tr('themes', theme?.id, lang)
-}
-
-export function pictureText(theme, picture, lang = defaultLang) {
-  if (!theme?.id || !picture?.picture_item_id) return {}
-  return tr('themes', `${theme.id}/${picture.picture_item_id}`, lang)
-}
+// Themes moved to composables/themes.js, on top of viewer-core's
+// `useCollectionTree` — see that file for the tree, the route-id convention
+// and `romanFor`, both kept in the site rather than the shared package.
 
 // ── Source projects ────────────────────────────────────────────────────────
 //
