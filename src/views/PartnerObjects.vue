@@ -55,13 +55,13 @@ const city = computed(() => (partner.value ? tr('partners', partner.value.id, de
       <RecordGrid :records="rows" :action-label="$t('exhibition.action.seeDatabaseEntry')">
         <template #empty>
           <p class="no-results">
-            {{ isInstitutionView ? $t('waterInIslam.partner.noObjectsInstitution') : $t('waterInIslam.partner.noObjectsPartner') }}
+            {{ isInstitutionView ? $t('waterInIslam.partnerObjects.emptyInstitution') : $t('waterInIslam.partnerObjects.emptyPartner') }}
           </p>
         </template>
       </RecordGrid>
       <div id="profile-link-container">
         <RouterLink id="profile-link" :to="partnerRoute(partner)">
-          ➤ {{ isInstitutionView ? $t('waterInIslam.partner.institutionProfileLink') : $t('waterInIslam.partner.partnerProfileLink') }}
+          ➤ {{ isInstitutionView ? $t('waterInIslam.partnerObjects.institutionProfile') : $t('waterInIslam.partnerObjects.partnerProfile') }}
         </RouterLink>
       </div>
     </div>
