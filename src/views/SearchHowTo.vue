@@ -1,20 +1,28 @@
 <script setup>
-import { I18nText } from '@metanull/viewer-core'
-import { BackLink } from '@metanull/viewer-layout/content'
+import { TextPageView } from '@metanull/viewer-layout/views'
 
 // Editorial page, shared by every exhibition. The whole essay is about MySQL
 // boolean full-text operators, which is why useCollection.js implements that
-// grammar rather than a plain substring match.
+// grammar rather than a plain substring match. `back` points at the
+// collection entrance, the only page that links here (its own `howTo`
+// entry, over the same route name) — the view's `back` is a fixed
+// destination, not `router.back()`, so there is no page-agnostic answer.
+//
+// `body` is a function, not the entry name string: viewer-layout 2.9.0's
+// TextPageView passes a string `body` to `I18nText` under the wrong prop
+// name (`entry-name` instead of `keypath`), which renders nothing. Reading
+// the entry through `ctx.t` and handing back Markdown text takes the
+// view's other body path instead, which does not go through that prop.
+const searchHowToSpec = {
+  body: (ctx) => ctx.t('catalogue.search.howToEssay'),
+  back: { label: 'core.action.back', to: { name: 'collection' } },
+}
 </script>
 
 <template>
-  <div class="editorial">
-    <BackLink />
-    <I18nText class="prose" dir="auto" keypath="catalogue.search.howToEssay" />
-  </div>
+  <TextPageView :spec="searchHowToSpec" class="editorial" />
 </template>
 
 <style scoped>
-.editorial { background: #fff; width: 100%; min-height: 400px; padding-bottom: 40px; }
-.prose { padding: 10px 50px 20px; max-width: 900px; line-height: 1.55; }
+.editorial :deep(.mwnf-text-page__back) { padding: 12px 0; }
 </style>
