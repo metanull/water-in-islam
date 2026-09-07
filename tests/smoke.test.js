@@ -5,6 +5,7 @@ import { catalogues as sharedTexts } from '@metanull/viewer-i18n/exhibition'
 import ownTexts from '../locales/en.json'
 import config from '../src/dataset.config.js'
 import partnerNamesEn from '@metanull/water-in-islam-data/translations/partners.en.json'
+import dynastyNamesEn from '@metanull/water-in-islam-data/translations/dynasties.en.json'
 
 // The same two layers main.js assembles, in the same order: the shared bundle
 // first, this exhibition's own file last. Mounting without them would prove
@@ -63,6 +64,26 @@ describe('website smoke test', () => {
     expect(host.querySelector('.languages')).not.toBeNull()
     expect(host.querySelector('.related-content-container')).not.toBeNull()
     if (item.project_key) expect(host.querySelector('.source-reference').textContent).toContain(item.project_key)
+    // The glossary tool (metanull/water-in-islam#36) is unconditional — the
+    // layout's own component, not local state, so every sheet carries it.
+    expect(host.querySelector('.mwnf-glossary-tool')).not.toBeNull()
+    app.unmount()
+  }, 60000)
+
+  // The dynasty popouts (metanull/water-in-islam#36) are DynastyList/
+  // DynastyPopout from the layout, fed the raw dynasty records legacy's own
+  // rule already filtered to (a dynasty with no history text gets no
+  // popout) — an item with such a dynasty must render the list with it.
+  it('renders a dynasty popout on an item sheet that has one', async () => {
+    const [, items] = await loadEntities(['exhibition', 'items'])
+    const item = items.find((i) =>
+      (!i.languages?.length || i.languages.includes('en'))
+      && (i.dynasty_ids ?? []).some((id) => dynastyNamesEn[id]?.history))
+    const dynastyId = item.dynasty_ids.find((id) => dynastyNamesEn[id]?.history)
+    const { app, host } = await mountSite(`#/item/${item.id}`)
+    await vi.waitFor(() => expect(host.querySelector('.mwnf-dynasty-list')).not.toBeNull(), { timeout: 20000 })
+    expect(host.querySelectorAll('.mwnf-dynasty').length).toBeGreaterThan(0)
+    expect(host.textContent).toContain(dynastyNamesEn[dynastyId].name)
     app.unmount()
   }, 60000)
 
