@@ -34,9 +34,23 @@ export const DATE_MODE = 'contain'
 export const FACET_CATEGORIES = ['type', 'dynasty', 'subject', 'material', 'artist']
 
 /**
- * The heading each facet dropdown carries. Every name is written out so
- * `viewer-i18n-check` can see the five it asks for.
+ * The heading each facet dropdown carries, as entry names. Written out once
+ * here so both the entrance's `SearchFormView` spec (which translates a
+ * facet's `label` itself) and the results page's own aside panel (which
+ * wants the translated string) read the same five names, and so
+ * `viewer-i18n-check` can see them.
  */
+export const FACET_LABEL_KEYS = {
+  type: 'catalogue.facet.type',
+  dynasty: 'catalogue.facet.periodDynasty',
+  subject: 'catalogue.facet.subject',
+  material: 'catalogue.facet.material',
+  artist: 'catalogue.facet.artist',
+}
+
+// Every name written out, not read off `FACET_LABEL_KEYS` through a
+// variable: `viewer-i18n-check` only sees a name spelled out at the call
+// site, so a loop over the map above would be invisible to it.
 export function useFacetLabels() {
   const { t } = useI18n()
   return {
@@ -130,12 +144,6 @@ export function tile(item, t) {
   }
 }
 
-/** `tile` bound to the installed texts, for a page that lists records itself. */
-export function useGridRecords() {
-  const { t } = useI18n()
-  return (list) => list.map((item) => tile(item, t))
-}
-
 // ── The results page, as a spec ────────────────────────────────────────────
 //
 // What viewer-layout's `CatalogueResultsView` renders on
@@ -145,15 +153,19 @@ export function useGridRecords() {
 // itself is composed by the view's wrapper, in the aside where legacy put it,
 // so no controls are declared here. Every text is an entry name.
 
-const KEYS = ['country', ...FACET_CATEGORIES, 'start', 'end']
+// `from`/`to`, not `start`/`end`: the entrance's `SearchFormView` spec
+// (`mode: 'facets'`, `dates: 'buckets'`) writes the date bounds under those
+// two fixed keys — the view's own, not something a spec can rename — so the
+// results side has to read the same ones to stay linked to it.
+const KEYS = ['country', ...FACET_CATEGORIES, 'from', 'to']
 
 /** The filter summary line legacy printed as "Collection | <selections>". */
 function filterSummary(filters, t) {
   const parts = []
   if (filters.country) parts.push(labelOf('countries', countryIdForCode(filters.country)))
   for (const key of FACET_CATEGORIES) if (filters[key]) parts.push(tagLabelForLegacy(filters[key]))
-  if (filters.start) parts.push(`${t('catalogue.filter.from')} ${filters.start}`)
-  if (filters.end) parts.push(`${t('catalogue.filter.to')} ${filters.end}`)
+  if (filters.from) parts.push(`${t('catalogue.filter.from')} ${filters.from}`)
+  if (filters.to) parts.push(`${t('catalogue.filter.to')} ${filters.to}`)
   return parts.filter(Boolean).join(' | ')
 }
 
@@ -169,7 +181,7 @@ export const collectionResults = {
   // useExhibitionData.js). The results page must not offer what the sheet
   // would refuse to open, so it is filtered to the same renderable subset.
   scope: (item) => itemById.value.has(item.id),
-  dates: { mode: DATE_MODE, begin: 'start', end: 'end' },
+  dates: { mode: DATE_MODE, begin: 'from', end: 'to' },
   sort: { undated: 'first' },
   pageSize: PAGE_SIZE,
   variant: 'grid',

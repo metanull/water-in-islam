@@ -112,6 +112,63 @@ describe('website smoke test', () => {
     app.unmount()
   }, 30000)
 
+  // The collection entrance and the header search results run on the
+  // platform's composed views (metanull/water-in-islam#35): the facet
+  // dropdowns, the from/to year buckets and the navigate-on-choice behaviour
+  // are `SearchFormView`'s (`mode: 'facets'`, CollectionSearch.vue); the
+  // boolean keyword grammar over the haystack is `CatalogueResultsView`'s
+  // `narrow` (SearchResults.vue), unchanged from before this story.
+  it('renders the collection entrance on the composed search form view', async () => {
+    const { app, host } = await mountSite('#/collection')
+    await vi.waitFor(() => expect(host.querySelector('.mwnf-search-form')).not.toBeNull(), { timeout: 20000 })
+    // The country dropdown plus at least one populated tag category.
+    expect(host.querySelectorAll('.mwnf-search-form .mwnf-facet').length).toBeGreaterThan(1)
+    // The shared from/to year buckets (`dates: 'buckets'`).
+    expect(host.querySelector('.mwnf-search-form__dates')).not.toBeNull()
+    // The "How to search" link to the essay page.
+    expect(host.querySelector('.mwnf-search-form__how-to')).not.toBeNull()
+    expect(host.textContent).toContain('Have you already been at')
+    app.unmount()
+  }, 30000)
+
+  it('returns every renderable object for the all-objects sentinel', async () => {
+    const { app, host } = await mountSite('#/search?q=all-objects')
+    await vi.waitFor(() => expect(host.querySelector('.mwnf-grid__tile')).not.toBeNull(), { timeout: 20000 })
+    expect(host.textContent).toContain('All objects')
+    app.unmount()
+  }, 30000)
+
+  it('renders a keyword search on the composed results view', async () => {
+    const [, items] = await loadEntities(['exhibition', 'items'])
+    // A term this build actually ships text for — the boolean grammar reads
+    // the English sheet, so a name from an English-tagged member is a hit
+    // the client-side index and the server-rendered fixture must agree on.
+    const item = items.find((i) => !i.languages?.length || i.languages.includes('en'))
+    const term = item.internal_name.split(' ')[0]
+    const { app, host } = await mountSite(`#/search?q=${encodeURIComponent(term)}`)
+    await vi.waitFor(() => expect(host.querySelector('.mwnf-grid__tile')).not.toBeNull(), { timeout: 20000 })
+    expect(host.textContent).toContain(`“${term}”`)
+    // Fewer than the full set, or the boolean grammar found nothing narrow.
+    expect(host.querySelectorAll('.mwnf-grid__tile').length).toBeGreaterThan(0)
+    app.unmount()
+  }, 30000)
+
+  it('offers the two ways out of an empty keyword search', async () => {
+    const { app, host } = await mountSite('#/search?q=zzz-nonexistent-keyword-zzz')
+    await vi.waitFor(() => expect(host.querySelector('.mwnf-catalogue')).not.toBeNull(), { timeout: 20000 })
+    expect(host.textContent).toContain('No items match your search.')
+    expect(host.querySelector('a[href="#/how-to-search"]')).not.toBeNull()
+    expect(host.querySelector('a[href="#/collection"]')).not.toBeNull()
+    app.unmount()
+  }, 30000)
+
+  it('renders the search how-to essay on the composed text page view', async () => {
+    const { app, host } = await mountSite('#/how-to-search')
+    await vi.waitFor(() => expect(host.textContent).toContain('Boolean Full Text Search'), { timeout: 20000 })
+    expect(host.querySelector('a[href="#/collection"]')).not.toBeNull()
+    app.unmount()
+  }, 30000)
+
   // The five theme-family pages run on composed views (metanull/water-in-islam#32):
   // the accordion, the essay, the results grid and the link list are the
   // package's; what only this exhibition has — the picture→parent
