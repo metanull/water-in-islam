@@ -2,12 +2,11 @@
 import { computed } from 'vue'
 import { useRouter, RouterLink } from 'vue-router'
 import { useI18n, yearBuckets } from '@metanull/viewer-core'
-import { FacetSelect, FilterPanel, Pagination } from '@metanull/viewer-layout/content'
+import { BackLink, FacetSelect, FilterPanel, Pagination } from '@metanull/viewer-layout/content'
 import { CatalogueResultsView } from '@metanull/viewer-layout/views'
 import { labelOf, timelines } from '../composables/useExhibitionData.js'
 import { FACET_CATEGORIES, collectionResults, countryIdForCode, useFacetLabels } from '../composables/useCollection.js'
 import { hasTimeline } from '../composables/useTimeline.js'
-import BackLink from '../components/BackLink.vue'
 
 // Results plus "filter further by", on the platform's composed results page:
 // the filters in the URL, the dependent options, the date rule, the tiles and

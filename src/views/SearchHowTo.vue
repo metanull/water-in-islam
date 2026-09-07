@@ -1,6 +1,6 @@
 <script setup>
 import { I18nText } from '@metanull/viewer-core'
-import BackLink from '../components/BackLink.vue'
+import { BackLink } from '@metanull/viewer-layout/content'
 
 // Editorial page, shared by every exhibition. The whole essay is about MySQL
 // boolean full-text operators, which is why useCollection.js implements that

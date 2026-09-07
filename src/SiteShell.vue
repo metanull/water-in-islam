@@ -7,13 +7,13 @@
 import { computed } from 'vue'
 import { useI18n, useSection, useSiteConfig } from '@metanull/viewer-core'
 import { PageShell } from '@metanull/viewer-layout'
+import { PopupLogo } from '@metanull/viewer-layout/content'
 import { useRouter } from 'vue-router'
 import {
-  exhibition, chromeImage, itemById, labelOf, tr, defaultLang,
+  exhibition, chromeImage, itemById, labelOf, md, tr, defaultLang,
   exhibitionTitle, exhibitionSubtitle, exhibitionHeadline, bannerCaption,
 } from './composables/useExhibitionData.js'
 import { hasTimeline } from './composables/useTimeline.js'
-import PopupLogo from './components/PopupLogo.vue'
 
 // `language`, `languages` and `update:language` are the shell contract of
 // viewer-core: the language the application is in, the languages it offers
@@ -173,6 +173,24 @@ const bottomLinks = computed(() => [
   { label: t('exhibition.nav.about'), description: t('exhibition.nav.introduction'), href: '#/about' },
   { label: t('exhibition.nav.themes'), description: t('exhibition.nav.contentAtAGlance'), href: '#/themes' },
 ])
+
+// Legacy showed `exhibitionPopupLogo` once per page load when
+// `exhibitionShowPopupLogo` was set, as a dismissible overlay. Both are
+// per-language in the package (`popup_logos` / `popup_logo_show`), because the
+// German instance suppresses the notice the English one shows. `raw-html` on
+// the layout's `PopupLogo` below: the body is Markdown like every other
+// field (the importer converts the legacy HTML on the way in), rendered here
+// through the site's own pipeline rather than the component's inline one,
+// which drops block elements a multi-paragraph notice needs.
+const popupContent = computed(() =>
+  md(exhibition.value?.popup_logos?.[locale.value] ?? exhibition.value?.popup_logos?.en ?? '')
+)
+const popupEnabled = computed(() => {
+  const show = exhibition.value?.popup_logo_show
+  if (show === null || show === undefined) return false
+  if (typeof show === 'boolean') return show
+  return show[locale.value] ?? show.en ?? false
+})
 </script>
 
 <template>
@@ -210,7 +228,7 @@ const bottomLinks = computed(() => [
     @update:language="emit('update:language', $event)"
   >
     <template #header-brand><span class="logo-mark">MWNF</span></template>
-    <PopupLogo />
+    <PopupLogo :content="popupContent" :enabled="popupEnabled" raw-html />
     <slot />
   </PageShell>
 </template>
