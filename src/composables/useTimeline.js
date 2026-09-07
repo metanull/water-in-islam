@@ -109,6 +109,13 @@ const regionNames = (() => {
 // Two legacy codes are not ISO 3166-1 alpha-2.
 const LEGACY_TO_ISO = { uk: 'GB', pa: 'PS' }
 
+// Country ids keyed by id: the set of inventory country ids present in countries.json.
+// Ids and legacy codes are distinct — legacy codes are backward_compatibility values,
+// while ids are the canonical keys in the inventory system.
+const countryIdSet = computed(
+  () => new Set(countries.value.map(c => c.id))
+)
+
 // A lookup, not a parse. The fallback exists only for the regressed-package
 // case described above, and it must agree with GLOBAL_TIMELINE_LIKE_PATTERNS in
 // `scripts/exporters/carpets/src/exporters/timeline-exporter.ts`: the country
@@ -179,8 +186,7 @@ export function timelineCountryName(countryId) {
 export function countryIdForCode(code) {
   if (!code || code === 'all') return null
   // Check if the input is already a country id present in countries.json
-  const countryIds = new Set(countries.value.map(c => c.id))
-  if (countryIds.has(code)) return code
+  if (countryIdSet.value.has(code)) return code
   // Legacy code lookup
   if (countryById.value.has(code)) return code
   const timeline = timelines.value.find(t => legacyCodeOf(t) === code)
