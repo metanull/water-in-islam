@@ -9,7 +9,7 @@ import { useI18n, useSection, useSiteConfig } from '@metanull/viewer-core'
 import { PageShell } from '@metanull/viewer-layout'
 import { useRouter } from 'vue-router'
 import {
-  exhibition, chromeImage, itemById, itemLabel, partnerLabel, countryLabel, tr, defaultLang,
+  exhibition, chromeImage, itemById, labelOf, tr, defaultLang,
   exhibitionTitle, exhibitionSubtitle, exhibitionHeadline, bannerCaption,
 } from './composables/useExhibitionData.js'
 import { hasTimeline } from './composables/useTimeline.js'
@@ -145,10 +145,10 @@ const banner = computed(() => {
   if (!item) return ''
   const sheet = tr('items', item.id, defaultLang)
   return {
-    name: itemLabel(item),
-    partner: partnerLabel(item.partner_id),
+    name: labelOf('items', item.id),
+    partner: labelOf('partners', item.partner_id),
     location: sheet.location ?? '',
-    country: countryLabel(item.country_id),
+    country: labelOf('countries', item.country_id),
   }
 })
 

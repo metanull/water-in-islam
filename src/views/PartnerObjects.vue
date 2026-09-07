@@ -4,7 +4,7 @@ import { useRoute, RouterLink } from 'vue-router'
 import { sortChronological, useListQuery, usePagination } from '@metanull/viewer-core'
 import { Pagination, RecordGrid } from '@metanull/viewer-layout/content'
 import {
-  items, visiblePartnerById, partnerRoute, partnerLabel, countryLabel, tr, defaultLang,
+  items, visiblePartnerById, partnerRoute, labelOf, tr, defaultLang,
 } from '../composables/useExhibitionData.js'
 import { PAGE_SIZE, useGridRecords } from '../composables/useCollection.js'
 import BackLink from '../components/BackLink.vue'
@@ -42,10 +42,10 @@ const city = computed(() => (partner.value ? tr('partners', partner.value.id, de
     <BackLink />
 
     <div id="partner-objects-header">
-      <p id="partner-name">{{ partnerLabel(partner.id) }}</p>
-      <p id="partner-location">{{ [city, countryLabel(partner.country_id)].filter(Boolean).join(', ') }}</p>
+      <p id="partner-name">{{ labelOf('partners', partner.id) }}</p>
+      <p id="partner-location">{{ [city, labelOf('countries', partner.country_id)].filter(Boolean).join(', ') }}</p>
       <p id="partner-count">
-        {{ pageInfo.total }} {{ isInstitutionView ? $t('waterInIslam.partner.monumentsInExhibition') : $t('exhibition.partner.objectsInExhibition') }}
+        {{ pageInfo.total }} {{ isInstitutionView ? $t('waterInIslam.partner.monumentsInExhibition') : $t('partner.item.objectsInSite') }}
       </p>
     </div>
 

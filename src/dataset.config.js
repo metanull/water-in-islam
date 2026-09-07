@@ -1,6 +1,9 @@
-import { languageLabels, loadEntities, offeredLanguages, useDataPackage } from '@metanull/viewer-core'
+import {
+  languageLabels, loadEntities, mwnfLinks, offeredLanguages, sectionMeta, useDataPackage,
+} from '@metanull/viewer-core'
+import { itemFromUidPath, partnerFromKey } from '@metanull/viewer-core/legacy'
 import SiteShell from './SiteShell.vue'
-import { itemFromUidPath, partnerFromKey } from './composables/useExhibitionData.js'
+import { countries, items, visiblePartners } from './composables/useExhibitionData.js'
 
 // The whole declaration of this website. Before it mounts, the website reads
 // nothing from its package but the manifest: the languages it offers, their
@@ -22,7 +25,7 @@ const languages = offeredLanguages()
 // to, and the shell reads that for the banner title and the active menu
 // entry (viewer-core's `useSection`).
 const CHROME = ['exhibition', 'items', 'partners', 'countries']
-const meta = (section, ...names) => ({ section, entities: [...CHROME, ...names] })
+const meta = sectionMeta(CHROME)
 
 export default {
   // The dataset package this website renders. Must match the alias in
@@ -55,21 +58,10 @@ export default {
     legacyHost: 'https://images.museumwnf.org',
   },
 
-  // Every address this website links out to.
-  links: {
-    portal: 'https://www.museumwnf.org',
-    galleries: 'https://galleries.museumwnf.org',
-    myCollection: 'https://www.museumwnf.org/mycollection/index.php',
-    about: 'https://www.museumwnf.org/about',
-    contact: 'https://www.museumwnf.org/about/contact',
-    legalNotice: 'https://www.museumwnf.org/about/legal-notice',
-    credits: 'https://www.museumwnf.org/about/credits',
-    cookies: 'https://www.museumwnf.org/about/cookies',
-    overallDatabase: 'https://www.museumwnf.org/database_searchform.php',
-    islamicArt: 'https://islamicart.museumwnf.org',
-    baroqueArt: 'https://baroqueart.museumwnf.org',
-    sharingHistory: 'https://sharinghistory.museumwnf.org',
-  },
+  // Every address this website links out to — the twelve portal addresses
+  // every DXA `dataset.config.js` repeats, from viewer-core; this exhibition
+  // has none of its own on top.
+  links: { ...mwnfLinks },
 
   // The canonical routes, one view per page: a section is `/<section>`, a
   // record `/<section>/:id` with the package id, and the language, the page
@@ -163,23 +155,23 @@ export default {
       path: '/database-item/:uid(.*)/:language',
       async resolve({ uid }) {
         await loadEntities(['items'])
-        const item = itemFromUidPath(uid)
+        const item = itemFromUidPath(items.value, uid)
         return item ? { name: 'item', params: { id: item.id } } : null
       },
     },
     {
       path: '/partner/:country/:id/:language',
       async resolve({ country, id }) {
-        await loadEntities(['exhibition', 'partners'])
-        const partner = partnerFromKey(country, id)
+        await loadEntities(['exhibition', 'partners', 'countries'])
+        const partner = partnerFromKey(visiblePartners.value, countries.value, country, id)
         return partner ? { name: 'partner', params: { id: partner.id } } : null
       },
     },
     {
       path: '/partner-objects/:country/:id/:page',
       async resolve({ country, id, page }) {
-        await loadEntities(['exhibition', 'partners'])
-        const partner = partnerFromKey(country, id)
+        await loadEntities(['exhibition', 'partners', 'countries'])
+        const partner = partnerFromKey(visiblePartners.value, countries.value, country, id)
         if (!partner) return null
         return { name: 'partner-objects', params: { id: partner.id }, query: Number(page) > 1 ? { page } : {} }
       },
@@ -187,16 +179,16 @@ export default {
     {
       path: '/institution/:country/:id/:language',
       async resolve({ country, id }) {
-        await loadEntities(['exhibition', 'partners'])
-        const partner = partnerFromKey(country, id)
+        await loadEntities(['exhibition', 'partners', 'countries'])
+        const partner = partnerFromKey(visiblePartners.value, countries.value, country, id)
         return partner ? { name: 'institution', params: { id: partner.id } } : null
       },
     },
     {
       path: '/institution-monuments/:country/:id/:page',
       async resolve({ country, id, page }) {
-        await loadEntities(['exhibition', 'partners'])
-        const partner = partnerFromKey(country, id)
+        await loadEntities(['exhibition', 'partners', 'countries'])
+        const partner = partnerFromKey(visiblePartners.value, countries.value, country, id)
         if (!partner) return null
         return { name: 'institution-monuments', params: { id: partner.id }, query: Number(page) > 1 ? { page } : {} }
       },

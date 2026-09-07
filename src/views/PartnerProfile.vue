@@ -2,7 +2,7 @@
 import { computed, ref, watch, onMounted } from 'vue'
 import { useRoute, RouterLink } from 'vue-router'
 import {
-  visiblePartnerById, partnerObjectsRoute, partnerLabel, countryLabel,
+  visiblePartnerById, partnerObjectsRoute, labelOf,
   tr, loadTranslations, availableLanguages, defaultLang, languageByCode, md,
 } from '../composables/useExhibitionData.js'
 import { NotFoundView, useI18n, useRecordLanguage } from '@metanull/viewer-core'
@@ -112,21 +112,21 @@ const website = computed(() => {
     <div v-if="!ready" class="loader">{{ $t('core.status.loading') }}</div>
 
     <div v-else id="partner-profile" :dir="dir">
-      <p id="partner-name">{{ partnerLabel(partner.id) }}</p>
+      <p id="partner-name">{{ labelOf('partners', partner.id) }}</p>
       <p id="partner-location">
-        <span v-if="info.city">{{ info.city }}, </span>{{ countryLabel(partner.country_id) }}
+        <span v-if="info.city">{{ info.city }}, </span>{{ labelOf('countries', partner.country_id) }}
       </p>
 
       <div id="partner-links-container">
         <div id="partner-links">
-          <button :class="{ active: tab === 'description' }" @click="tab = 'description'">{{ $t('exhibition.partner.about') }}</button>
+          <button :class="{ active: tab === 'description' }" @click="tab = 'description'">{{ $t('partner.info.about') }}</button>
           <template v-if="hasContact">
             <span class="divider">|</span>
-            <button :class="{ active: tab === 'contact' }" @click="tab = 'contact'">{{ $t('exhibition.partner.contact') }}</button>
+            <button :class="{ active: tab === 'contact' }" @click="tab = 'contact'">{{ $t('partner.info.contact') }}</button>
           </template>
           <template v-if="partner.logos?.length">
             <span class="divider">|</span>
-            <button :class="{ active: tab === 'logo' }" @click="tab = 'logo'">{{ $t('exhibition.partner.logo') }}</button>
+            <button :class="{ active: tab === 'logo' }" @click="tab = 'logo'">{{ $t('partner.info.logo') }}</button>
           </template>
           <template v-if="website">
             <span class="divider">|</span>
@@ -142,7 +142,7 @@ const website = computed(() => {
         <div class="profile-photo-container">
           <template v-if="photos.length">
             <div class="profile-photo" @click="lightbox = true">
-              <img :src="photos[currentPhoto].url" :alt="partnerLabel(partner.id)" />
+              <img :src="photos[currentPhoto].url" :alt="labelOf('partners', partner.id)" />
             </div>
             <div id="profile-thumbnail-container" v-if="photos.length > 1">
               <div
@@ -152,7 +152,7 @@ const website = computed(() => {
                 :class="{ active: index === currentPhoto }"
                 @click="currentPhoto = index"
               >
-                <img :src="pic.url" :alt="`${partnerLabel(partner.id)} — ${index + 1}`" />
+                <img :src="pic.url" :alt="`${labelOf('partners', partner.id)} — ${index + 1}`" />
                 <div class="tooltip-text" v-if="pic.photographer || pic.copyright">
                   <div v-if="pic.photographer">{{ t('record.media.photograph') }}: {{ pic.photographer }}</div>
                   <div v-if="pic.copyright">© {{ pic.copyright }}</div>
@@ -166,16 +166,16 @@ const website = computed(() => {
           <div class="prose" v-if="tab === 'description'" v-html="md(info.description)"></div>
 
           <div v-else-if="tab === 'contact'">
-            <p class="contact-header">{{ $t('exhibition.partner.addresses') }}</p>
+            <p class="contact-header">{{ $t('partner.info.addresses') }}</p>
             <div class="prose" v-html="md(info.address)"></div>
-            <p v-if="info.phone">{{ $t('exhibition.partner.phone') }} {{ info.phone }}</p>
+            <p v-if="info.phone">{{ $t('partner.info.phone') }} {{ info.phone }}</p>
             <p v-if="info.email"><a :href="`mailto:${info.email}`">{{ info.email }}</a></p>
             <p v-if="website"><a :href="website" target="_blank" rel="noopener">{{ info.website }}</a></p>
             <div class="contact-person" v-for="person in contacts" :key="person.name ?? person.email">
               <p class="contact-title" v-if="person.title">{{ person.title }}</p>
               <p v-if="person.name">{{ person.name }}</p>
-              <p v-if="person.phone">{{ $t('exhibition.partner.phone') }} {{ person.phone }}</p>
-              <p v-if="person.fax">{{ $t('exhibition.partner.fax') }} {{ person.fax }}</p>
+              <p v-if="person.phone">{{ $t('partner.info.phone') }} {{ person.phone }}</p>
+              <p v-if="person.fax">{{ $t('partner.info.fax') }} {{ person.fax }}</p>
               <p v-if="person.email"><a :href="`mailto:${person.email}`">{{ person.email }}</a></p>
             </div>
             <div class="additional-urls" v-if="partner.additional_urls?.length">
@@ -186,7 +186,7 @@ const website = computed(() => {
           </div>
 
           <div id="partner-logo-container" v-else-if="tab === 'logo'">
-            <img v-for="logo in partner.logos" :key="logo.url" :src="logo.url" :alt="partnerLabel(partner.id)" />
+            <img v-for="logo in partner.logos" :key="logo.url" :src="logo.url" :alt="labelOf('partners', partner.id)" />
           </div>
         </div>
       </div>
@@ -195,13 +195,13 @@ const website = computed(() => {
         :latitude="partner.latitude"
         :longitude="partner.longitude"
         :zoom="partner.map_zoom"
-        :label="partnerLabel(partner.id)"
+        :label="labelOf('partners', partner.id)"
       />
     </div>
 
     <div id="lightbox-container" v-if="lightbox" @click="lightbox = false">
       <button class="lightbox-control" v-if="photos.length > 1" @click.stop="slide('left')">‹</button>
-      <img :src="photos[currentPhoto].url" :alt="partnerLabel(partner.id)" />
+      <img :src="photos[currentPhoto].url" :alt="labelOf('partners', partner.id)" />
       <button class="lightbox-control" v-if="photos.length > 1" @click.stop="slide('right')">›</button>
     </div>
   </div>

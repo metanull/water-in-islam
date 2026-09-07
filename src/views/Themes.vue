@@ -66,7 +66,7 @@ function isOpen(index) {
           @click="toggle(index)"
         >
           <span>
-            {{ $t('waterInIslam.theme.romanLabel') }} {{ entry.roman }} ▪ {{ entry.title }}
+            {{ $t('exhibition.theme.romanLabel') }} {{ entry.roman }} ▪ {{ entry.title }}
             <span v-if="!showAll" aria-hidden="true">{{ isOpen(index) ? '▴' : '▾' }}</span>
           </span>
         </div>
@@ -107,7 +107,7 @@ function isOpen(index) {
 
             <div class="theme-gallery-link">
               <RouterLink :to="`/theme-gallery/${entry.routeId}`">
-                {{ $t('waterInIslam.theme.seeGalleryFor') }} {{ entry.roman }}
+                {{ $t('exhibition.theme.seeGalleryFor') }} {{ entry.roman }}
               </RouterLink>
             </div>
           </div>

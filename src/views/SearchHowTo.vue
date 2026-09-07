@@ -10,7 +10,7 @@ import BackLink from '../components/BackLink.vue'
 <template>
   <div class="editorial">
     <BackLink />
-    <I18nText class="prose" dir="auto" keypath="exhibition.search.howTo" />
+    <I18nText class="prose" dir="auto" keypath="catalogue.search.howToEssay" />
   </div>
 </template>
 

@@ -4,7 +4,7 @@ import { useRouter, RouterLink } from 'vue-router'
 import { useI18n, yearBuckets } from '@metanull/viewer-core'
 import { FacetSelect, FilterPanel, Pagination } from '@metanull/viewer-layout/content'
 import { CatalogueResultsView } from '@metanull/viewer-layout/views'
-import { countryLabel, timelines } from '../composables/useExhibitionData.js'
+import { labelOf, timelines } from '../composables/useExhibitionData.js'
 import { FACET_CATEGORIES, collectionResults, countryIdForCode, useFacetLabels } from '../composables/useCollection.js'
 import { hasTimeline } from '../composables/useTimeline.js'
 import BackLink from '../components/BackLink.vue'
@@ -98,7 +98,7 @@ function showTimelineLink(filters) {
         <p>
           ➤
           <RouterLink :to="{ name: 'timeline-results', query: { c: filters.country, start: filters.start, end: filters.end } }">
-            {{ $t('exhibition.section.timeline') }} | {{ countryLabel(countryIdForCode(filters.country)) }}
+            {{ $t('exhibition.section.timeline') }} | {{ labelOf('countries', countryIdForCode(filters.country)) }}
           </RouterLink>
         </p>
       </div>
