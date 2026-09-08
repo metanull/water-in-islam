@@ -1,7 +1,12 @@
 /*
- * Global styles shared by every Water in Islam view: the palette the views and
- * the shell reference, plus the shared building blocks (panels, selects,
- * buttons, prose, project chips).
+ * Global styles shared by every Water in Islam view: the palette the views,
+ * the shell and the layout's content classes reference, plus the one thing
+ * this exhibition adds on top of them (the 'Explore' project chip, below).
+ *
+ * The building blocks themselves — panels, selects, buttons, prose, back
+ * bars, loaders, the project chips proper — are viewer-layout's content
+ * classes (`.mwnf-*`, see its README's "Content classes" table); this file
+ * no longer carries copies of them.
  *
  * Page chrome — header, banner, navigation, footer surfaces — is themed
  * through theme/tokens.css instead; this file is the website's own content
@@ -38,7 +43,10 @@
 
   /* Source-project accents — legacy's #info-citation-link colouring, one tone
      per family. Seven of the eight appear in this exhibition; DCA is kept
-     because the table is the platform's rather than this deployment's. */
+     because the table is the platform's rather than this deployment's. These
+     feed viewer-layout's `.mwnf-chip--<family>` through its own
+     `--mwnf-project-*` tokens, below — the mapping from a project key to a
+     family is still `projectFamily()` in useExhibitionData.js. */
   --dia-yellow:    #ffcc00;  /* Discover Islamic Art (ISL / EPM) */
   --dba-blue:      #001d66;  /* Discover Baroque Art (DBA / BAR) */
   --sh-red:        #900000;  /* Sharing History (AWE) */
@@ -47,6 +55,15 @@
   --explore-green: #006950;  /* Explore monuments database */
   --g-grey:        #263238;  /* Galleries */
   --exhibitions:   #7f01d4;  /* Exhibitions (this one, and The Table Is Set) */
+
+  --mwnf-project-ISLandEPM:      var(--dia-yellow);
+  --mwnf-project-ISLandEPM-text: #000000;
+  --mwnf-project-DBA:            var(--dba-blue);
+  --mwnf-project-AWE:            var(--sh-red);
+  --mwnf-project-DCA:            var(--dca-tan);
+  --mwnf-project-DGA:            var(--dga-blue);
+  --mwnf-project-EXH:            var(--exhibitions);
+  --mwnf-project-Galleries:      var(--g-grey);
 
   /* The database half of this site — collection search and results, the item
      sheet, partners, the timeline — is the gallery client's, and carries
@@ -82,72 +99,16 @@ html[dir='rtl'] body { direction: rtl; }
 
 a { color: inherit; }
 
-/* ── Shared building blocks ─────────────────────────────────────────────── */
-.white-panel { background: var(--secondary-color); width: 100%; }
+/* ── This exhibition's own extra project family ────────────────────────────
+   A member with no `project_key` at all is sourced from the Explore
+   monuments database rather than from a project (`isExploreRecord` in
+   useExhibitionData.js); legacy still colours it, on `#info-citation-link`'s
+   `Explore` class. The shared package's `.mwnf-chip--<family>` rules stop at
+   the seven platform families, so this one stays here. */
+.mwnf-chip--Explore { background-color: var(--explore-green); color: #fff; }
 
-.section-label { font-size: 125%; font-weight: 700; }
-
-.legacy-select {
-  height: 35px;
-  width: 100%;
-  max-width: 300px;
-  margin-top: 10px;
-  padding: 5px;
-  font-family: inherit;
-  font-size: 14px;
-  border: 1px solid #999;
-  background: #fff;
-}
-
-.legacy-button {
-  background: var(--contrast-color);
-  color: var(--contrast-text-color);
-  border: none;
-  padding: 6px 16px;
-  font-family: inherit;
-  font-size: 14px;
-  cursor: pointer;
-}
-.legacy-button:hover { background: var(--main-color); color: var(--main-text-color); }
-
-.link-blue { color: var(--link-blue); }
-.link-blue:hover { text-decoration: underline; }
-
-.prose a { color: var(--link-blue); }
-.prose p { margin-bottom: 12px; }
-.prose em { font-style: italic; }
-.prose strong { font-weight: 700; }
-.prose ul { margin: 0 0 12px 20px; }
-
-.back-bar { padding: 12px 20px; }
-.back-bar button {
-  background: none;
-  border: none;
-  color: var(--secondary-text-color);
-  font-family: inherit;
-  font-size: 15px;
-  cursor: pointer;
-}
-.back-bar button:hover { text-decoration: underline; }
-
-.page-heading {
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--secondary-text-color);
-  padding: 20px 20px 0;
-}
-
-/* Source-project colour chips. One class per legacy FAMILY rather than per
-   project key — the mapping lives in useExhibitionData.js — so the class names
-   below are legacy's own, and this block reads as the stylesheet it copies. */
-.project-chip { color: #fff; padding: 1px 8px; font-size: 12px; display: inline-block; }
-.project-ISLandEPM { background: var(--dia-yellow); color: #000; }
-.project-DBA { background: var(--dba-blue); }
-.project-AWE { background: var(--sh-red); }
-.project-DCA { background: var(--dca-tan); }
-.project-DGA { background: var(--dga-blue); }
-.project-Explore { background: var(--explore-green); }
-.project-Galleries { background: var(--g-grey); }
-.project-EXH { background: var(--exhibitions); }
-
-.loader { padding: 40px; text-align: center; color: var(--secondary-text-color); }
+/* Legacy's content links are blue; viewer-layout's `.mwnf-prose a` reads the
+   shared `--mwnf-color-accent` instead, which this exhibition already uses
+   for navigation and buttons in its own contrast tone — a different colour
+   for a different purpose, so prose keeps its own. */
+.mwnf-prose a { color: var(--link-blue); }

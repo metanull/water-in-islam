@@ -25,7 +25,7 @@ import { partnerListSpec } from '../composables/partnerSpecs.js'
         <!-- A shared entry, not this exhibition's own: the only thing that made
              the old `txtPartners` exhibition-specific was an absolute URL to its
              own Themes page, which is `#/themes` now. -->
-        <I18nText id="partners-list-description" class="prose" dir="auto" keypath="exhibition.partners.intro" />
+        <I18nText id="partners-list-description" class="mwnf-prose" dir="auto" keypath="exhibition.partners.intro" />
       </template>
 
       <template #row="{ partner, row }">

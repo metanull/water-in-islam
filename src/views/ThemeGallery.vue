@@ -65,7 +65,7 @@ const spec = computed(() => ({
     </template>
   </CatalogueResultsView>
 
-  <div class="loader" v-else>{{ t('exhibition.theme.notInExhibition') }}</div>
+  <div class="mwnf-loader" v-else>{{ t('exhibition.theme.notInExhibition') }}</div>
 </template>
 
 <style scoped>

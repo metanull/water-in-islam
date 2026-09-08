@@ -79,17 +79,17 @@ function contacts(record) {
           </template>
         </div>
         <div id="partner-objects-link" v-if="record.item_count">
-          <RouterLink class="legacy-button" :to="partnerObjectsRoute(record)">{{ itemsLabel }}</RouterLink>
+          <RouterLink class="mwnf-button" :to="partnerObjectsRoute(record)">{{ itemsLabel }}</RouterLink>
         </div>
       </div>
     </template>
 
     <template #before-sheet="{ record, text }">
-      <div class="prose" v-if="tab === 'description'" v-html="md(text.description)"></div>
+      <div class="mwnf-prose" v-if="tab === 'description'" v-html="md(text.description)"></div>
 
       <div v-else-if="tab === 'contact'">
         <p class="contact-header">{{ $t('partner.info.addresses') }}</p>
-        <div class="prose" v-html="md(text.address)"></div>
+        <div class="mwnf-prose" v-html="md(text.address)"></div>
         <p v-if="text.phone">{{ $t('partner.info.phone') }} {{ text.phone }}</p>
         <p v-if="text.email"><a :href="`mailto:${text.email}`">{{ text.email }}</a></p>
         <p v-if="website(text)"><a :href="website(text)" target="_blank" rel="noopener">{{ text.website }}</a></p>
@@ -111,13 +111,15 @@ function contacts(record) {
         <img v-for="logo in record.logos" :key="logo.url" :src="logo.url" :alt="labelOf('partners', record.id)" />
       </div>
 
+      <!-- No entry props: 2.10.0's defaults (partner.map.map/.mapOf/
+           .openInOpenStreetMap) name this link now; this page used to point
+           open-map-link-entry at exhibition.action.openInOpenStreetMap, an
+           entry neither this exhibition nor the shared bundle declares, so
+           the OpenStreetMap link rendered its own bare entry name. -->
       <PartnerMap
         :latitude="record.latitude"
         :longitude="record.longitude"
         :zoom="record.map_zoom"
-        map-title-entry="partner.map.onTheMap"
-        map-of-entry="partner.map.mapOf"
-        open-map-link-entry="exhibition.action.openInOpenStreetMap"
         :label="labelOf('partners', record.id)"
       />
     </template>
@@ -159,7 +161,7 @@ function contacts(record) {
 .contact-header { font-weight: 700; color: var(--theme-dark); margin-bottom: 4px; }
 .contact-person { margin-top: 12px; }
 .contact-title { font-style: italic; }
-.partner-profile-page :deep(.prose) a { color: var(--link-blue); }
+.partner-profile-page :deep(.mwnf-prose) a { color: var(--link-blue); }
 #partner-logo-container img { max-width: 200px; display: block; margin-bottom: 12px; }
 .additional-urls { margin-top: 12px; word-break: break-all; }
 </style>

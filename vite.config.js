@@ -2,6 +2,16 @@ import { fileURLToPath } from 'node:url'
 import vue from '@vitejs/plugin-vue'
 import { defineConfig } from 'vite'
 
+// Not on `defineViewerConfig` (@metanull/viewer-core/testing) yet: that
+// package's testing barrel re-exports `smoke.js` beside `viteConfig.js`, and
+// `smoke.js` imports `createViewer.js`, which imports `AppRoot.vue` — so
+// merely importing the barrel from this file (loaded by plain Node before
+// Vite's own Vue-aware pipeline exists) throws
+// `ERR_UNKNOWN_FILE_EXTENSION` on the first `.vue` it reaches. Confirmed with
+// `node --input-type=module -e "import('@metanull/viewer-core/testing')"`
+// against the installed 1.12.3. The shape below is `defineViewerConfig`'s
+// own, by hand, so switching over later is a one-line change once the
+// package splits the barrel.
 export default defineConfig({
   // GitHub Pages serves the site under /<repo>/; the deploy workflow sets
   // BASE_PATH accordingly. Local dev and root deployments use /.
@@ -31,6 +41,7 @@ export default defineConfig({
   },
   test: {
     environment: 'jsdom',
+    testTimeout: 60000,
     server: {
       deps: {
         // viewer-core ships .vue source; Node cannot load it unless Vitest

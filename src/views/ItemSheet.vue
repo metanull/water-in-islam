@@ -136,7 +136,7 @@ function printSheet() {
              FAMILY, as legacy's `#info-citation-link` class is, and the
              source line is dropped when legacy has no project name to print. -->
         <p class="source-reference" v-if="projectFamily(record)">
-          <span class="project-chip" :class="`project-${projectFamily(record)}`">{{ record.project_key || projectFamily(record) }}</span>
+          <span class="mwnf-chip" :class="`mwnf-chip--${projectFamily(record)}`">{{ record.project_key || projectFamily(record) }}</span>
           <template v-if="projectNameOf(record, t)">{{ t('record.sheet.sourceDatabase') }}: {{ projectNameOf(record, t) }}</template>
         </p>
         <p class="source-uid"><code>{{ record.backward_compatibility }}</code></p>
@@ -165,7 +165,7 @@ function printSheet() {
           <!-- Related items this exhibition does not ship: the reference it is, awaiting a resolver. -->
           <ul v-if="relatedOutsideRefs(records, outside, record).length" class="reference-list">
             <li v-for="r in relatedOutsideRefs(records, outside, record)" :key="r.id">
-              <span class="project-chip" :class="`project-${projectFamily(r)}`">{{ r.project_key || projectFamily(r) }}</span>
+              <span class="mwnf-chip" :class="`mwnf-chip--${projectFamily(r)}`">{{ r.project_key || projectFamily(r) }}</span>
               <code>{{ r.backward_compatibility }}</code>
               <span class="unresolved-note">{{ $t('exhibition.results.notInThisExhibition') }}</span>
             </li>

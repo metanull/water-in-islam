@@ -26,7 +26,7 @@ const spec = computed(() => ({ ...timelineSpec.value, entrance: true }))
 <template>
   <TimelineResultsView :spec="spec">
     <template #after>
-      <I18nText id="timeline-description" class="prose" dir="auto" keypath="exhibition.timeline.intro" />
+      <I18nText id="timeline-description" class="mwnf-prose" dir="auto" keypath="exhibition.timeline.intro" />
     </template>
   </TimelineResultsView>
 </template>
