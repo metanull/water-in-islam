@@ -25,7 +25,7 @@ const props = defineProps({
 const { t } = useI18n()
 const isInstitutionView = computed(() => props.variant === 'institution')
 const homepageLabel = computed(() =>
-  isInstitutionView.value ? t('exhibition.action.institutionHomepage') : t('exhibition.action.partnerHomepage'),
+  isInstitutionView.value ? t('exhibition.action.institutionHomepage') : t('partner.nav.homepage'),
 )
 const itemsLabel = computed(() =>
   isInstitutionView.value ? t('exhibition.action.viewItems') : t('exhibition.action.viewObjects'),
