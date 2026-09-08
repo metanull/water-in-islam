@@ -46,6 +46,15 @@ export default {
 
   languages,
 
+  // The absolute address this build is deployed at, base path included
+  // (viewer-core's README, "the declaration outside a component" —
+  // `sourceUrl()` reads it). GitHub Pages serves this repo at
+  // `https://metanull.github.io/<repo>`, the same `<repo>` segment
+  // `vite.config.js`'s `BASE_PATH` puts in the build's own base path — so
+  // this changes together with that one, and with the domain, whenever the
+  // site moves off GitHub Pages.
+  site: { origin: 'https://metanull.github.io/water-in-islam' },
+
   shell: SiteShell,
 
   // What viewer-layout's `SiteShell` (src/SiteShell.vue) reads to build the

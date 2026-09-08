@@ -2,6 +2,7 @@
 import { computed, ref, watch, onMounted } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { EssayView } from '@metanull/viewer-layout/views'
+import { SourceCredit } from '@metanull/viewer-layout/content'
 import { useI18n } from '@metanull/viewer-core'
 import {
   aboutTheme, owningTheme, romanFor, themeByRouteId, themePictures, themeText,
@@ -319,12 +320,16 @@ const nextArrow = '→'
     </template>
 
     <!-- About mode only: EssayView drops the tour nav for `about` nodes, and
-         legacy's About page still points forward into the tour. -->
+         legacy's About page still points forward into the tour. Overriding
+         `#after` replaces its default (`SourceCredit`), so it is rendered
+         explicitly here too — every essay page carries the credit, not only
+         the ones with nothing else in this slot. -->
     <template #after="{ next }">
       <div class="theme-component-navigation-next-previous-wrapper" v-if="aboutMode && next">
         <span></span>
         <RouterLink :to="themeNodeRoute(next)" class="theme-nav next">{{ t('exhibition.theme.next') }} {{ nextArrow }}</RouterLink>
       </div>
+      <SourceCredit />
     </template>
 
     <template #panel v-if="!aboutMode">

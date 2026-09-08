@@ -6,6 +6,7 @@ import {
 import { catalogues as sharedTexts } from '@metanull/viewer-i18n/exhibition'
 import ownTexts from '../locales/en.json'
 import config from '../src/dataset.config.js'
+import manifest from '@metanull/water-in-islam-data'
 import partnerNamesEn from '@metanull/water-in-islam-data/translations/partners.en.json'
 import dynastyNamesEn from '@metanull/water-in-islam-data/translations/dynasties.en.json'
 
@@ -62,6 +63,14 @@ describe('website smoke test', () => {
     // The glossary tool (metanull/water-in-islam#36) is unconditional — the
     // layout's own component, not local state, so every sheet carries it.
     expect(host.querySelector('.mwnf-glossary-tool')).not.toBeNull()
+    // The source credit (metanull/water-in-islam#43): itemSheet.citation is
+    // not `false`, so RecordView's `source` slot renders its default
+    // (SourceCredit) once the website declares `site.origin` — the link's
+    // text is `sourceUrl()`'s own address, origin plus this item's hash route.
+    const creditLink = host.querySelector('.mwnf-source-credit a')
+    expect(creditLink).not.toBeNull()
+    expect(creditLink.textContent.startsWith(config.site.origin)).toBe(true)
+    expect(creditLink.textContent.endsWith(`#/item/${item.id}`)).toBe(true)
     app.unmount()
   }, 60000)
 
@@ -215,6 +224,13 @@ describe('website smoke test', () => {
     expect(proseElement?.textContent?.trim()).toBeTruthy()
     const titleElement = host.querySelector('.mwnf-essay__title')
     if (titleElement) expect(titleElement.textContent).not.toBe(theme.internal_name)
+    // Theme.vue overrides EssayView's `after` slot for the tour's forward
+    // link (About mode only) — that override replaces the slot's own
+    // default (SourceCredit), so the credit is rendered explicitly there too
+    // (metanull/water-in-islam#43).
+    const creditLink = host.querySelector('.mwnf-source-credit a')
+    expect(creditLink).not.toBeNull()
+    expect(creditLink.textContent.startsWith(config.site.origin)).toBe(true)
     app.unmount()
   }, 30000)
 
@@ -441,8 +457,32 @@ describe('website smoke test', () => {
     expect(text).toContain('Themes')
     expect(text).toContain('A MWNF online exhibition.')
     // Nothing rendered as a bare entry name, which is what a missing text
-    // looks like — there is no exception to throw for one.
-    expect(checkTextsRendered(host, { namespaces: ['waterInIslam', 'exhibition', 'core', 'layout'] })).toEqual([])
+    // looks like — there is no exception to throw for one. Every namespace
+    // the pages render, not just the site's own: a raw shared key (`record`,
+    // `sheet`, `timeline`, `partner`, `catalogue`, and this site's `exhibition`
+    // class) passes unseen otherwise.
+    expect(checkTextsRendered(host, {
+      namespaces: ['waterInIslam', 'core', 'layout', 'catalogue', 'record', 'sheet', 'timeline', 'partner', 'exhibition'],
+    })).toEqual([])
+
+    app.unmount()
+  }, 20000)
+
+  // The footer attribution (metanull/water-in-islam#43): once the data
+  // package's `manifest.rights` names a holder, viewer-layout's SiteShell
+  // renders the attribution sentence and a terms-of-use link automatically —
+  // nothing in this website's own SiteShell.vue names it.
+  it('renders the rights attribution and the terms link in the footer', async () => {
+    const { app, host } = await mountSite()
+
+    const attribution = host.querySelector('.mwnf-footer__attribution')
+    expect(attribution).not.toBeNull()
+    expect(attribution.textContent).toContain(manifest.rights.attribution)
+
+    const termsLink = host.querySelector('.mwnf-footer__terms')
+    expect(termsLink).not.toBeNull()
+    expect(termsLink.textContent).toBe(messages.en['record.source.termsOfUse'])
+    expect(termsLink.getAttribute('href')).toBe(manifest.rights.terms_url)
 
     app.unmount()
   }, 20000)
