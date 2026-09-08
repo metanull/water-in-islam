@@ -111,11 +111,8 @@ function contacts(record) {
         <img v-for="logo in record.logos" :key="logo.url" :src="logo.url" :alt="labelOf('partners', record.id)" />
       </div>
 
-      <!-- No entry props: 2.10.0's defaults (partner.map.map/.mapOf/
-           .openInOpenStreetMap) name this link now; this page used to point
-           open-map-link-entry at exhibition.action.openInOpenStreetMap, an
-           entry neither this exhibition nor the shared bundle declares, so
-           the OpenStreetMap link rendered its own bare entry name. -->
+      <!-- No entry props passed: PartnerMap's label for the OpenStreetMap link
+           defaults to partner.map.openInOpenStreetMap since viewer-layout 2.10.0. -->
       <PartnerMap
         :latitude="record.latitude"
         :longitude="record.longitude"
