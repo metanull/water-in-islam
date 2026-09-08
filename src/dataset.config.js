@@ -2,8 +2,11 @@ import {
   languageLabels, loadEntities, mwnfLinks, offeredLanguages, sectionMeta, useDataPackage,
 } from '@metanull/viewer-core'
 import { itemFromUidPath, partnerFromKey } from '@metanull/viewer-core/legacy'
+import { TextPageView } from '@metanull/viewer-layout/views'
 import SiteShell from './SiteShell.vue'
 import { countries, items, visiblePartners } from './composables/useExhibitionData.js'
+import { hasTimeline } from './composables/useTimeline.js'
+import { creditsSpec } from './composables/textPageSpecs.js'
 
 // The whole declaration of this website. Before it mounts, the website reads
 // nothing from its package but the manifest: the languages it offers, their
@@ -45,10 +48,109 @@ export default {
 
   shell: SiteShell,
 
-  // Props for the shell: the switcher's labels come from the package, not
-  // from a translator.
+  // What viewer-layout's `SiteShell` (src/SiteShell.vue) reads to build the
+  // menu, the header/footer link lists, the search submit and the banner
+  // title of every page but Home — legacy's NavigationComponent, one for one,
+  // with the single rename "related content" → /related. `to`, not a bare
+  // `href`, so a route rename stays one edit. TIMELINE is dropped when the
+  // exhibition reports neither chronology (`hasTimeline`) — both flags gate
+  // the nav entry, not the data.
   navigation: {
     languages: languageLabels(languages),
+    links: [
+      { section: 'about', label: 'exhibition.nav.about', to: { name: 'about' } },
+      { section: 'themes', label: 'exhibition.nav.themes', to: { name: 'themes' } },
+      { section: 'collection', label: 'exhibition.nav.collection', to: { name: 'collection' } },
+      { section: 'partners', label: 'exhibition.nav.partners', to: { name: 'partners' } },
+      { section: 'timeline', label: 'exhibition.nav.timeline', to: { name: 'timeline' }, when: () => hasTimeline.value },
+      { section: 'related', label: 'exhibition.related.title', to: { name: 'related' } },
+      { section: 'credits', label: 'exhibition.nav.credits', to: { name: 'credits' } },
+      { label: 'exhibition.nav.myCollection', href: mwnfLinks.myCollection, external: true },
+    ],
+    headerLinks: [
+      { label: 'core.nav.home', to: { name: 'home' } },
+      { label: 'exhibition.footer.aboutMwnf', href: mwnfLinks.about, external: true },
+    ],
+    footerLinks: [
+      { label: 'exhibition.footer.aboutMwnf', href: mwnfLinks.about, external: true },
+      { label: 'exhibition.footer.contact', href: mwnfLinks.contact, external: true },
+      { label: 'exhibition.footer.legalNotice', href: mwnfLinks.legalNotice, external: true },
+      { label: 'exhibition.footer.credits', href: mwnfLinks.credits, external: true },
+      { label: 'exhibition.footer.cookies', href: mwnfLinks.cookies, external: true },
+    ],
+    // The banner title over every section page but Home, which supplies its
+    // own from the exhibition record (src/SiteShell.vue) — a route with none
+    // of these names never renders (`checkSectionMeta` below), so there is no
+    // "error" fallback to declare any more.
+    sectionTitles: {
+      themes: 'exhibition.section.themes',
+      collection: 'exhibition.section.collection',
+      database: 'exhibition.section.database',
+      partners: 'exhibition.section.partners',
+      related: 'exhibition.related.title',
+      timeline: 'exhibition.section.timeline',
+      about: 'exhibition.section.about',
+      credits: 'exhibition.section.credits',
+    },
+    // `all-objects` is legacy's sentinel for an empty submission, and the
+    // value SearchResults matches on. The two must agree: the monorepo
+    // viewer sent `all-items` from here while matching `all-objects` there,
+    // so an empty search reported no results out of the full count instead
+    // of listing everything.
+    search: {
+      route: 'search-results',
+      key: 'q',
+      placeholder: 'exhibition.search.placeholder',
+      submitLabel: 'catalogue.search.submit',
+      empty: 'all-objects',
+    },
+  },
+
+  // The banner variant is the one thing every page (but the sections Home
+  // gates on `isHome`, src/SiteShell.vue) reads off the route alone: a split
+  // banner with the exhibition's own title/subtitle/headline on Home, a
+  // narrow section strip everywhere else.
+  banner: {
+    variant: ({ section }) => (section === 'home' ? 'split' : 'section'),
+  },
+
+  // Legacy renders category 0 — "Header" — beside the MWNF mark, under the
+  // `header_logo_section_1` heading, and leaves categories 1–4 to the footer
+  // strip. This exhibition has one logo and it is category 1, the UNAOC mark
+  // under "Under the patronage of", so the header block stays empty here too;
+  // the rule is kept because the split is the data's, not this exhibition's.
+  // Each heading is written out: a name assembled from the category id would
+  // resolve at run time and be invisible to the check that every entry a page
+  // asks for exists. Only the two categories that carry real copy are entries
+  // — legacy's slots 3 and 4 hold placeholder text ("MIDDLE RIGHT FOOTER
+  // SECTION FOR LOGOS"), which is not something to ask a translator for.
+  // Those fall back to the legacy category name, exactly as an unlisted
+  // category always did. `logos` (below) is `src/SiteShell.vue`'s own
+  // reshaping of the exhibition's raw logo records into this shape.
+  logos: {
+    header: (logo) => Number(logo.category_id) === 0 && logo.visible !== false,
+    headerTitle: 'exhibition.sponsors.coOrganisers',
+    sponsorGroups: (logos, t) => {
+      const byCategory = new Map()
+      for (const logo of logos) {
+        if (logo.visible === false) continue
+        if (Number(logo.category_id) === 0) continue
+        const key = logo.category_id ?? 0
+        const bucket = byCategory.get(key)
+        if (bucket) bucket.push(logo)
+        else byCategory.set(key, [logo])
+      }
+      return [...byCategory.entries()]
+        .sort((a, b) => a[0] - b[0])
+        .map(([categoryId, group]) => ({
+          title: Number(categoryId) === 1 ? t('exhibition.sponsors.patronage')
+            : Number(categoryId) === 2 ? t('exhibition.sponsors.support')
+              : (group[0].category ?? ''),
+          sponsors: [...group]
+            .sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0))
+            .map((logo) => ({ name: logo.alt, href: logo.href, logo: logo.image })),
+        }))
+    },
   },
 
   // Exhibition chrome images and related-content documents live on the legacy
@@ -141,7 +243,10 @@ export default {
       component: () => import('./views/TimelineGallery.vue'),
       meta: meta('timeline', 'timelines', 'timeline_events'),
     },
-    { path: '/credits', name: 'credits', component: () => import('./views/Credits.vue'), meta: meta('credits') },
+    // No local Credits.vue: legacy's Credits page is a heading (the shell's
+    // own `sectionTitles`), a body and a back link, exactly `TextPageView`'s
+    // shape (`creditsSpec`, composables/textPageSpecs.js).
+    { path: '/credits', name: 'credits', component: TextPageView, props: { spec: creditsSpec }, meta: meta('credits') },
   ],
 
   // The legacy URL shapes, redirect-only, so a legacy address pasted after

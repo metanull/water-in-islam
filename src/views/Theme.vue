@@ -244,7 +244,7 @@ const nextArrow = '→'
 
     <template #after-body>
       <template v-if="!aboutMode">
-        <div class="theme-component-selected-justification prose" v-if="contextualHtml" v-html="contextualHtml"></div>
+        <div class="theme-component-selected-justification mwnf-prose" v-if="contextualHtml" v-html="contextualHtml"></div>
 
         <!-- Related items: the selected picture as a source -->
         <div class="related-items-container" v-if="selectedTargets.length">
@@ -399,7 +399,7 @@ const nextArrow = '→'
     </template>
   </EssayView>
 
-  <div class="loader" v-else>{{ t('exhibition.theme.notInExhibition') }}</div>
+  <div class="mwnf-loader" v-else>{{ t('exhibition.theme.notInExhibition') }}</div>
 </template>
 
 <style scoped>

@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
-import { createViewer, loadEntities, mergeMessages } from '@metanull/viewer-core'
-import { checkOfferedLanguages } from '@metanull/viewer-core/testing'
+import { loadEntities, mergeMessages } from '@metanull/viewer-core'
+import {
+  checkOfferedLanguages, checkRoutes, checkSectionMeta, checkTextsRendered, mountSite as mountOn,
+} from '@metanull/viewer-core/testing'
 import { catalogues as sharedTexts } from '@metanull/viewer-i18n/exhibition'
 import ownTexts from '../locales/en.json'
 import config from '../src/dataset.config.js'
@@ -13,15 +15,8 @@ import dynastyNamesEn from '@metanull/water-in-islam-data/translations/dynasties
 const messages = mergeMessages(sharedTexts, { en: ownTexts })
 
 // Mounted on the address under test, as a visitor arrives from a link.
-async function mountSite(hash = '#/') {
-  window.location.hash = hash
-  const app = createViewer({ ...config, messages })
-  const host = document.createElement('div')
-  document.body.appendChild(host)
-  app.mount(host)
-  const router = app.config.globalProperties.$router
-  await router.isReady()
-  return { app, host, router }
+function mountSite(hash = '#/') {
+  return mountOn(config, messages, hash)
 }
 
 describe('website smoke test', () => {
@@ -343,29 +338,29 @@ describe('website smoke test', () => {
   }, 30000)
 
   it('declares every canonical route by name, and every legacy shape as a redirect', () => {
-    const names = config.extraViews.map((r) => r.name)
-    for (const name of [
-      'home', 'about', 'themes', 'theme', 'theme-gallery', 'collection', 'collection-results',
-      'item', 'search-results', 'search-how-to', 'partners', 'partner', 'partner-objects',
-      'institution', 'institution-monuments', 'related', 'timeline', 'timeline-results',
-      'timeline-gallery', 'credits',
-    ]) {
-      expect(names).toContain(name)
-    }
-    expect(config.extraViews.every((r) => r.name)).toBe(true)
-    const legacy = config.legacyRoutes.map((r) => r.path)
-    for (const path of [
-      '/database-item/:uid(.*)/:language',
-      '/partner/:country/:id/:language',
-      '/partner-objects/:country/:id/:page',
-      '/institution/:country/:id/:language',
-      '/institution-monuments/:country/:id/:page',
-      '/timeline-gallery/:country/:start/:end/:page',
-    ]) {
-      expect(legacy).toContain(path)
-    }
-    // The catch-all and the not-found page are the router's, not this site's.
-    expect(config.extraViews.some((r) => r.path.includes('pathMatch'))).toBe(false)
+    expect(checkRoutes(config, {
+      names: [
+        'home', 'about', 'themes', 'theme', 'theme-gallery', 'collection', 'collection-results',
+        'item', 'search-results', 'search-how-to', 'partners', 'partner', 'partner-objects',
+        'institution', 'institution-monuments', 'related', 'timeline', 'timeline-results',
+        'timeline-gallery', 'credits',
+      ],
+      legacyPaths: [
+        '/database-item/:uid(.*)/:language',
+        '/partner/:country/:id/:language',
+        '/partner-objects/:country/:id/:page',
+        '/institution/:country/:id/:language',
+        '/institution-monuments/:country/:id/:page',
+        '/timeline-gallery/:country/:start/:end/:page',
+      ],
+    })).toEqual([])
+  })
+
+  // Every route names the section it belongs to, which is what the shell
+  // (src/SiteShell.vue, `config.navigation.links`/`.sectionTitles`) reads for
+  // the active menu entry and the banner title.
+  it('gives every route a section', () => {
+    expect(checkSectionMeta(config)).toEqual([])
   })
 
   it('offers the languages the package declares for the site, where the items carry them', () => {
@@ -447,7 +442,7 @@ describe('website smoke test', () => {
     expect(text).toContain('A MWNF online exhibition.')
     // Nothing rendered as a bare entry name, which is what a missing text
     // looks like — there is no exception to throw for one.
-    expect(text).not.toMatch(/\b(waterInIslam|exhibition|core|layout)\.[a-z]/i)
+    expect(checkTextsRendered(host, { namespaces: ['waterInIslam', 'exhibition', 'core', 'layout'] })).toEqual([])
 
     app.unmount()
   }, 20000)
