@@ -1,6 +1,6 @@
 <script setup>
-import { CatalogueResultsView } from '@metanull/viewer-layout/views'
-import { BackLink } from '@metanull/viewer-layout/content'
+import { CatalogueResultsView } from '@museumwnf/viewer-layout/views'
+import { BackLink } from '@museumwnf/viewer-layout/content'
 import { timelineGallerySpec } from '../composables/useTimeline.js'
 
 // The member items whose dates overlap the timeline search's country and

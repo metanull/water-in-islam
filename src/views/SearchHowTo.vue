@@ -1,5 +1,5 @@
 <script setup>
-import { TextPageView } from '@metanull/viewer-layout/views'
+import { TextPageView } from '@museumwnf/viewer-layout/views'
 
 // Editorial page, shared by every exhibition. The whole essay is about MySQL
 // boolean full-text operators, which is why useCollection.js implements that

@@ -1,5 +1,5 @@
 import { computed } from 'vue'
-import { entityRef, useCollectionTree } from '@metanull/viewer-core'
+import { entityRef, useCollectionTree } from '@museumwnf/viewer-core'
 import { defaultLang, tr } from './useExhibitionData.js'
 
 // themes.json is the ordered tree: top-level themes, each with its sub-themes

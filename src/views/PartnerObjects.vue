@@ -1,8 +1,8 @@
 <script setup>
 import { computed } from 'vue'
 import { useRoute, RouterLink } from 'vue-router'
-import { BackLink, Pagination } from '@metanull/viewer-layout/content'
-import { CatalogueResultsView } from '@metanull/viewer-layout/views'
+import { BackLink, Pagination } from '@museumwnf/viewer-layout/content'
+import { CatalogueResultsView } from '@museumwnf/viewer-layout/views'
 import {
   visiblePartnerById, partnerRoute, labelOf, tr, defaultLang,
 } from '../composables/useExhibitionData.js'

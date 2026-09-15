@@ -1,6 +1,6 @@
 <script setup>
-import { LinkListView } from '@metanull/viewer-layout/views'
-import { useI18n } from '@metanull/viewer-core'
+import { LinkListView } from '@museumwnf/viewer-layout/views'
+import { useI18n } from '@museumwnf/viewer-core'
 import {
   relatedContent, chromeImage, countryLabelFromCode, mdStrip,
 } from '../composables/useExhibitionData.js'

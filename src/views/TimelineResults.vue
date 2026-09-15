@@ -1,6 +1,6 @@
 <script setup>
-import { TimelineResultsView } from '@metanull/viewer-layout/views'
-import { BackLink } from '@metanull/viewer-layout/content'
+import { TimelineResultsView } from '@museumwnf/viewer-layout/views'
+import { BackLink } from '@museumwnf/viewer-layout/content'
 import { timelineSpec } from '../composables/useTimeline.js'
 
 // Timeline results, on the platform's composed timeline view: the "See

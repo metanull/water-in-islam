@@ -1,9 +1,9 @@
 <script setup>
 import { computed } from 'vue'
 import { useRouter, RouterLink } from 'vue-router'
-import { useI18n, yearBuckets } from '@metanull/viewer-core'
-import { BackLink, FacetSelect, FilterPanel, Pagination } from '@metanull/viewer-layout/content'
-import { CatalogueResultsView } from '@metanull/viewer-layout/views'
+import { useI18n, yearBuckets } from '@museumwnf/viewer-core'
+import { BackLink, FacetSelect, FilterPanel, Pagination } from '@museumwnf/viewer-layout/content'
+import { CatalogueResultsView } from '@museumwnf/viewer-layout/views'
 import { labelOf, timelines } from '../composables/useExhibitionData.js'
 import { FACET_CATEGORIES, collectionResults, countryIdForCode, useFacetLabels } from '../composables/useCollection.js'
 import { hasTimeline } from '../composables/useTimeline.js'

@@ -1,9 +1,9 @@
 <script setup>
 import { computed, ref, watch, onMounted } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
-import { EssayView } from '@metanull/viewer-layout/views'
-import { SourceCredit } from '@metanull/viewer-layout/content'
-import { useI18n } from '@metanull/viewer-core'
+import { EssayView } from '@museumwnf/viewer-layout/views'
+import { SourceCredit } from '@museumwnf/viewer-layout/content'
+import { useI18n } from '@museumwnf/viewer-core'
 import {
   aboutTheme, owningTheme, romanFor, themeByRouteId, themePictures, themeText,
 } from '../composables/themes.js'

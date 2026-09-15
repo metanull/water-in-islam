@@ -1,14 +1,14 @@
 import { describe, expect, it, vi } from 'vitest'
-import { loadEntities, mergeMessages } from '@metanull/viewer-core'
+import { loadEntities, mergeMessages } from '@museumwnf/viewer-core'
 import {
   checkOfferedLanguages, checkRoutes, checkSectionMeta, checkTextsRendered, mountSite as mountOn,
-} from '@metanull/viewer-core/testing'
-import { catalogues as sharedTexts } from '@metanull/viewer-i18n/exhibition'
+} from '@museumwnf/viewer-core/testing'
+import { catalogues as sharedTexts } from '@museumwnf/viewer-i18n/exhibition'
 import ownTexts from '../locales/en.json'
 import config from '../src/dataset.config.js'
-import manifest from '@metanull/water-in-islam-data'
-import partnerNamesEn from '@metanull/water-in-islam-data/translations/partners.en.json'
-import dynastyNamesEn from '@metanull/water-in-islam-data/translations/dynasties.en.json'
+import manifest from '@museumwnf/water-in-islam-data'
+import partnerNamesEn from '@museumwnf/water-in-islam-data/translations/partners.en.json'
+import dynastyNamesEn from '@museumwnf/water-in-islam-data/translations/dynasties.en.json'
 
 // The same two layers main.js assembles, in the same order: the shared bundle
 // first, this exhibition's own file last. Mounting without them would prove

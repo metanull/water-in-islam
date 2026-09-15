@@ -1,9 +1,9 @@
 <script setup>
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { useI18n } from '@metanull/viewer-core'
-import { CatalogueResultsView } from '@metanull/viewer-layout/views'
-import { BackLink } from '@metanull/viewer-layout/content'
+import { useI18n } from '@museumwnf/viewer-core'
+import { CatalogueResultsView } from '@museumwnf/viewer-layout/views'
+import { BackLink } from '@museumwnf/viewer-layout/content'
 import {
   pictureById, romanFor, themeByRouteId, themeText, themeTree,
 } from '../composables/themes.js'
