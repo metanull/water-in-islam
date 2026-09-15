@@ -46,7 +46,7 @@ client did.
 
 The texts every MWNF exhibition shares — the menu, the item-sheet labels, the
 introductions to the Collection, the Partners and the Timeline — come from
-[`viewer-i18n`](https://github.com/metanull/viewer-i18n) as the `exhibition`
+[`viewer-i18n`](https://github.com/museumwithnofrontiers/viewer-i18n) as the `exhibition`
 bundle. `locales/` holds only what belongs to *this* exhibition, and may
 overload any shared entry by spelling out the same name. Today that is one
 entry, `waterInIslam.credits.body`: the credits name this exhibition's own
@@ -82,7 +82,7 @@ You only need a GitHub account and a browser. The files under `locales/` hold
 
 Texts shared with the other MWNF exhibitions — the menu, the labels of an item
 sheet, the introductions to the Collection and the Timeline — are not here:
-they live in [`viewer-i18n`](https://github.com/metanull/viewer-i18n) and are
+they live in [`viewer-i18n`](https://github.com/museumwithnofrontiers/viewer-i18n) and are
 edited there, the same way. This exhibition can override any of them by writing
 the same entry name in its own file. The museum content itself arrives already
 translated in the dataset and is not edited anywhere.
@@ -118,7 +118,7 @@ request for the `viewer-layout` package — open an issue there.
 ## Deployment
 
 Every push to `main` builds and publishes the site to
-<https://metanull.github.io/water-in-islam/> through the reusable workflows in
-[`metanull/viewer-workflows`](https://github.com/metanull/viewer-workflows).
+<https://museumwithnofrontiers.github.io/water-in-islam/> through the reusable workflows in
+[`museumwithnofrontiers/viewer-workflows`](https://github.com/museumwithnofrontiers/viewer-workflows).
 The base path comes from `BASE_PATH` at build time and defaults to the
 repository name.
