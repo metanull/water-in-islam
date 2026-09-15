@@ -6,7 +6,7 @@ updates:
   # and this site's data package are IGNORED here — not because Dependabot
   # cannot reach them (they publish publicly to npmjs now, no token needed),
   # but because they are updated deliberately through the release-then-
-  # propagate procedure in metanull/viewer-workflows (`tools/propagate.mjs`),
+  # propagate procedure in museumwithnofrontiers/viewer-workflows (`tools/propagate.mjs`),
   # which opens one pull request per site right after each platform or data
   # release. A Dependabot bump of the same package would race that procedure
   # rather than replace it.
@@ -22,7 +22,7 @@ updates:
     ignore:
       - dependency-name: "@museumwnf/*"
 
-  # The reusable workflows in metanull/viewer-workflows are pinned to an exact
+  # The reusable workflows in museumwithnofrontiers/viewer-workflows are pinned to an exact
   # version in .github/workflows/*.yml, never to a moving major tag. Dependabot
   # covers reusable-workflow refs as well as step-level actions, so a new
   # viewer-workflows release arrives here as a pull request that runs this
