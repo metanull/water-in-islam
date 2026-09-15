@@ -1,8 +1,8 @@
 import {
   languageLabels, loadEntities, mwnfLinks, offeredLanguages, sectionMeta, useDataPackage,
-} from '@metanull/viewer-core'
-import { itemFromUidPath, partnerFromKey } from '@metanull/viewer-core/legacy'
-import { TextPageView } from '@metanull/viewer-layout/views'
+} from '@museumwnf/viewer-core'
+import { itemFromUidPath, partnerFromKey } from '@museumwnf/viewer-core/legacy'
+import { TextPageView } from '@museumwnf/viewer-layout/views'
 import SiteShell from './SiteShell.vue'
 import { countries, items, visiblePartners } from './composables/useExhibitionData.js'
 import { hasTimeline } from './composables/useTimeline.js'
@@ -33,7 +33,7 @@ const meta = sectionMeta(CHROME)
 export default {
   // The dataset package this website renders. Must match the alias in
   // vite.config.js and the dependency in package.json.
-  datasetPackage: '@metanull/water-in-islam-data',
+  datasetPackage: '@museumwnf/water-in-islam-data',
 
   // English is the base language of every catalogue in the platform, so the
   // name the site is known by is the English one, whatever this build enables.

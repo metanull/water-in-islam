@@ -1,4 +1,4 @@
-import { useI18n } from '@metanull/viewer-core'
+import { useI18n } from '@museumwnf/viewer-core'
 import {
   countries, countryById, itemById, tagById, tags,
   itemRoute, labelOf, tr, defaultLang, mdInline, projectName,

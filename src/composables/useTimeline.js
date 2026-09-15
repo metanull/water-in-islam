@@ -1,5 +1,5 @@
 import { computed } from 'vue'
-import { eraLabel, roundOutward, yearBucketsFromRange } from '@metanull/viewer-core'
+import { eraLabel, roundOutward, yearBucketsFromRange } from '@museumwnf/viewer-core'
 import {
   exhibition, timelines, timelineEvents, countries, countryById, items, labelOf,
   tr, defaultLang,

@@ -13,9 +13,9 @@
 // shape `config.logos.header`/`.sponsorGroups` bucket by, the MWNF mark
 // (`#brand`), and the dismissible popup notice, which is this exhibition's own.
 import { computed } from 'vue'
-import { useI18n, useSection, useSiteConfig } from '@metanull/viewer-core'
-import { SiteShell } from '@metanull/viewer-layout/components'
-import { PopupLogo } from '@metanull/viewer-layout/content'
+import { useI18n, useSection, useSiteConfig } from '@museumwnf/viewer-core'
+import { SiteShell } from '@museumwnf/viewer-layout/components'
+import { PopupLogo } from '@museumwnf/viewer-layout/content'
 import {
   exhibition, chromeImage, itemById, labelOf, md, tr, defaultLang,
   exhibitionTitle, exhibitionSubtitle, exhibitionHeadline, bannerCaption,

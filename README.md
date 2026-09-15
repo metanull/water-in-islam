@@ -6,22 +6,18 @@ collection and its database, partners and contributing institutions, further
 reading, and the item sheets themselves — built from the published dataset.
 
 A website is a light, static Vue 3 front-end for one published dataset. It
-combines three `@metanull` packages from GitHub Packages:
+combines three `@museumwnf` packages from npmjs:
 
 | Package | Role |
 | --- | --- |
-| `@metanull/water-in-islam-data` | the dataset (JSON + `manifest.json`, **private**) |
-| `@metanull/viewer-core` | application engine (routing, data access, the text runtime and the language service) |
-| `@metanull/viewer-i18n` | the texts shared with the other MWNF websites (this one receives the `exhibition` bundle: `core` + `layout` + `exhibition`) |
-| `@metanull/viewer-layout` | page structure (`PageShell` + sections), themed via `theme/tokens.css` |
+| `@museumwnf/water-in-islam-data` | the dataset (JSON + `manifest.json`) |
+| `@museumwnf/viewer-core` | application engine (routing, data access, the text runtime and the language service) |
+| `@museumwnf/viewer-i18n` | the texts shared with the other MWNF websites (this one receives the `exhibition` bundle: `core` + `layout` + `exhibition`) |
+| `@museumwnf/viewer-layout` | page structure (`PageShell` + sections), themed via `theme/tokens.css` |
 
-Because the data package is private, every `npm install` needs authenticated
-access to GitHub Packages. In CI there is nothing to configure: the package
-grants this repository Read under *Manage Actions access*, so the workflow's
-built-in `github.token` can install it — no secret, no PAT. Locally, each
-developer authenticates for themselves, with
-`npm login --registry=https://npm.pkg.github.com` or a personal `~/.npmrc`; the
-Docker preview mounts that `~/.npmrc` read-only.
+Every `@museumwnf` package, the dataset included, publishes publicly to
+npmjs, so `npm install` needs no authentication anywhere — not in CI, not on
+a developer's machine. Nothing in this repository holds a token.
 
 ---
 
@@ -72,9 +68,8 @@ The preview runs in Docker; nothing needs to be installed on the host.
 docker compose up
 ```
 
-Log in to GitHub Packages once on your own machine — `npm login
---registry=https://npm.pkg.github.com --scope=@metanull` — and the preview reads
-that login. Nothing in this repository holds a token. Then open
+No npm login is needed: every `@museumwnf` package installs anonymously from
+npmjs. Nothing in this repository holds a token. Then open
 <http://localhost:5173>.
 
 `npm run build`, `npm run test` and `npm run lint` are the three checks CI runs

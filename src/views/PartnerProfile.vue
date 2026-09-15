@@ -1,9 +1,9 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
-import { NotFoundView, useI18n } from '@metanull/viewer-core'
-import { BackLink, PartnerMap, RecordLanguages } from '@metanull/viewer-layout/content'
-import { RecordView } from '@metanull/viewer-layout/views'
+import { NotFoundView, useI18n } from '@museumwnf/viewer-core'
+import { BackLink, PartnerMap, RecordLanguages } from '@museumwnf/viewer-layout/content'
+import { RecordView } from '@museumwnf/viewer-layout/views'
 import { labelOf, md, partnerObjectsRoute, visiblePartnerById } from '../composables/useExhibitionData.js'
 import { partnerSheetSpec } from '../composables/partnerSpecs.js'
 

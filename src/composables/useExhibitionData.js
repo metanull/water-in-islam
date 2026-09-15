@@ -2,7 +2,7 @@ import { computed } from 'vue'
 import {
   byId, entityRef, mediaUrl, useCatalogueData,
   projectName as coreProjectName, projectFamily as coreProjectFamily,
-} from '@metanull/viewer-core'
+} from '@museumwnf/viewer-core'
 
 // The exhibition's records, read the one way every website reads them:
 // through viewer-core, lazily. Each entity is a shared ref that stays `null`

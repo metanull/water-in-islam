@@ -1,9 +1,9 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { RouterLink } from 'vue-router'
-import { useKeywordIndex } from '@metanull/viewer-core'
-import { BackLink } from '@metanull/viewer-layout/content'
-import { CatalogueResultsView } from '@metanull/viewer-layout/views'
+import { useKeywordIndex } from '@museumwnf/viewer-core'
+import { BackLink } from '@museumwnf/viewer-layout/content'
+import { CatalogueResultsView } from '@museumwnf/viewer-layout/views'
 import { itemById, loadEnglish } from '../composables/useExhibitionData.js'
 import { PAGE_SIZE, haystack, tile } from '../composables/useCollection.js'
 
