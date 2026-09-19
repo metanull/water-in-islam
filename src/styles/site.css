@@ -5,8 +5,8 @@
  *
  * The building blocks themselves — panels, selects, buttons, prose, back
  * bars, loaders, the project chips proper — are viewer-layout's content
- * classes (`.mwnf-*`, see its README's "Content classes" table); this file
- * no longer carries copies of them.
+ * classes (the `mwnf-` prefixed ones, see its README's "Content classes"
+ * table); this file no longer carries copies of them.
  *
  * Page chrome — header, banner, navigation, footer surfaces — is themed
  * through theme/tokens.css instead; this file is the website's own content
@@ -108,9 +108,3 @@ a { color: inherit; }
 .mwnf-chip--galleries       { background-color: var(--g-grey);         color: #ffffff; }
 .mwnf-chip--exhibition      { background-color: var(--exhibitions);    color: #ffffff; }
 .mwnf-chip--explore         { background-color: var(--explore-green); color: #ffffff; }
-
-/* Legacy's content links are blue; viewer-layout's `.mwnf-prose a` reads the
-   shared `--mwnf-color-accent` instead, which this exhibition already uses
-   for navigation and buttons in its own contrast tone — a different colour
-   for a different purpose, so prose keeps its own. */
-.mwnf-prose a { color: var(--link-blue); }
