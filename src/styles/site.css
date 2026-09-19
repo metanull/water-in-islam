@@ -42,28 +42,20 @@
   --rule-grey:   #e0e0e0;
 
   /* Source-project accents — legacy's #info-citation-link colouring, one tone
-     per family. Seven of the eight appear in this exhibition; DCA is kept
-     because the table is the platform's rather than this deployment's. These
-     feed viewer-layout's `.mwnf-chip--<family>` through its own
-     `--mwnf-project-*` tokens, below — the mapping from a project key to a
-     family is still `projectFamily()` in useExhibitionData.js. */
-  --dia-yellow:    #ffcc00;  /* Discover Islamic Art (ISL / EPM) */
-  --dba-blue:      #001d66;  /* Discover Baroque Art (DBA / BAR) */
-  --sh-red:        #900000;  /* Sharing History (AWE) */
-  --dca-tan:       #6b612b;  /* Discover Carpet Art (DCA) */
-  --dga-blue:      #0059bf;  /* Discover Glass Art (DGA) */
-  --explore-green: #006950;  /* Explore monuments database */
-  --g-grey:        #263238;  /* Galleries */
-  --exhibitions:   #7f01d4;  /* Exhibitions (this one, and The Table Is Set) */
-
-  --mwnf-project-ISLandEPM:      var(--dia-yellow);
-  --mwnf-project-ISLandEPM-text: #000000;
-  --mwnf-project-DBA:            var(--dba-blue);
-  --mwnf-project-AWE:            var(--sh-red);
-  --mwnf-project-DCA:            var(--dca-tan);
-  --mwnf-project-DGA:            var(--dga-blue);
-  --mwnf-project-EXH:            var(--exhibitions);
-  --mwnf-project-Galleries:      var(--g-grey);
+     per project family this exhibition actually borrows from (Discover
+     Baroque Art and Discover Carpet Art never appear here, so unlike the
+     sibling the-use-of-colours-in-art this exhibition does not declare
+     them). Epic #1727 phase 4: these no longer feed viewer-layout's shared
+     `mwnf-chip--<family>` classes through `--mwnf-project-*` tokens — this
+     exhibition no longer computes a "family" from a legacy project key at
+     all, so it defines its own `mwnf-chip--<name>` rules directly, below,
+     instead. */
+  --dia-yellow:    #ffcc00;  /* Discover Islamic Art */
+  --sh-red:        #900000;  /* Sharing History */
+  --dga-blue:      #0059bf;  /* Discover Glass Art */
+  --explore-green: #006950;  /* Explore monuments database (no project at all) */
+  --g-grey:        #263238;  /* MWNF Galleries */
+  --exhibitions:   #7f01d4;  /* This exhibition's own native project, and The Table Is Set */
 
   /* The database half of this site — collection search and results, the item
      sheet, partners, the timeline — is the gallery client's, and carries
@@ -99,13 +91,23 @@ html[dir='rtl'] body { direction: rtl; }
 
 a { color: inherit; }
 
-/* ── This exhibition's own extra project family ────────────────────────────
-   A member with no `project_key` at all is sourced from the Explore
-   monuments database rather than from a project (`isExploreRecord` in
-   useExhibitionData.js); legacy still colours it, on `#info-citation-link`'s
-   `Explore` class. The shared package's `.mwnf-chip--<family>` rules stop at
-   the seven platform families, so this one stays here. */
-.mwnf-chip--Explore { background-color: var(--explore-green); color: #fff; }
+/* ── Source-project chip colours (epic #1727 phase 4) ──────────────────────
+   ItemSheet.vue's own `mwnf-chip--<name>` classes, one per project family
+   this exhibition borrows from — the site's own content style (designer-
+   contract.md role 3), replacing viewer-layout's shared
+   `mwnf-chip--<family>` classes (content.css), which this exhibition no
+   longer uses now that a family is a `dataset.config.js` `projectColors`
+   lookup by project UUID, not a legacy-key-keyed one. The `Explore` case is
+   the one family the manifest cannot name (a member with no `project_id` at
+   all, sourced from the Explore monuments database rather than from a
+   project — `isExploreRecord` in useExhibitionData.js); legacy still
+   coloured it, on `#info-citation-link`'s `Explore` class. */
+.mwnf-chip--islamic-art     { background-color: var(--dia-yellow);     color: #000000; }
+.mwnf-chip--sharing-history { background-color: var(--sh-red);         color: #ffffff; }
+.mwnf-chip--glass-art       { background-color: var(--dga-blue);       color: #ffffff; }
+.mwnf-chip--galleries       { background-color: var(--g-grey);         color: #ffffff; }
+.mwnf-chip--exhibition      { background-color: var(--exhibitions);    color: #ffffff; }
+.mwnf-chip--explore         { background-color: var(--explore-green); color: #ffffff; }
 
 /* Legacy's content links are blue; viewer-layout's `.mwnf-prose a` reads the
    shared `--mwnf-color-accent` instead, which this exhibition already uses
