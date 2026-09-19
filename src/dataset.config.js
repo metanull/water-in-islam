@@ -15,6 +15,40 @@ import { creditsSpec } from './composables/textPageSpecs.js'
 
 const { manifest } = useDataPackage()
 
+// ── Source-project site config (epic #1727 phase 4) ─────────────────────────
+//
+// Per-project-UUID editorial choices ItemSheet.vue makes about a borrowed
+// item's source: which colour swatch its chip uses (one of the site's own
+// `mwnf-chip--<name>` classes, `src/styles/site.css` — not viewer-layout's
+// shared `mwnf-chip--<family>` vocabulary, `content.css`, which named its
+// families after legacy project keys and which this exhibition no longer
+// keys anything off), and which projects still get the Explore-partner
+// notice legacy showed on the sheet. Both keyed by project UUID, read from
+// this package's own `manifest.projects`
+// (`npm pack @museumwnf/water-in-islam-data`) — never the legacy project
+// key, which this exhibition no longer reads. Shared verbatim with the
+// sibling the-use-of-colours-in-art (museumwithnofrontiers/the-use-of-colours-in-art#69);
+// this package's own UUIDs differ (no Discover Baroque Art or Discover
+// Carpet Art here; "The Table Is Set" instead, legacy's `EXTHE`, which
+// shared the exhibition's own `EXH` family — `PROJECT_FAMILIES.EXTHE` in
+// viewer-core's now-deprecated table), so this copy of the two maps is
+// ported by hand, not copied.
+export const projectColors = {
+  '61c122ac-ea86-5462-8bab-6b86138c49b2': 'islamic-art', // Discover Islamic Art
+  '928f5e0d-53e3-5f53-b9c2-5af389c30dd4': 'islamic-art', // Explore Islamic Art Collections
+  '0f031e22-6dc6-5ce6-b94b-9bb88345140c': 'sharing-history', // Sharing History
+  'ad963031-4a8c-5d06-b797-b7cfc772e3c0': 'glass-art', // Discover Glass Art
+  'a0817323-79ca-53fc-95ac-9f65ee2fcbac': 'galleries', // MWNF Galleries
+  '21cccf03-49f5-55d3-96f5-eddeee7a989d': 'exhibition', // Water in Islam (this exhibition's own native project)
+  '09bed55d-efe6-50e0-8c24-1647bc9822eb': 'exhibition', // The Table Is Set (legacy's EXTHE, which shared the exhibition family)
+}
+
+// Legacy's Explore-partner notice, shown only on a sheet borrowed from
+// Explore Islamic Art Collections.
+export const noticeProjects = [
+  '928f5e0d-53e3-5f53-b9c2-5af389c30dd4', // Explore Islamic Art Collections
+]
+
 // The languages this exhibition publishes (`exhibition_i18n.enabled`, declared
 // by the package as `site.languages`), kept where the item translations
 // actually carry them. An item sheet may offer more — whatever languages the
